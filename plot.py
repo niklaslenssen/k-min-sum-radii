@@ -12,10 +12,9 @@ for _, ball in balls.iterrows():
     kreis = Circle((ball['x'], ball['y']), ball['radius'], fill=False, edgecolor='black', linewidth=2)
     ax.add_patch(kreis)
     ax.plot(ball['x'], ball['y'], 'x', color='black')
-    
 
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('k-Min-Sum-Radii')
 plt.axis('equal')
-plt.show()
+plt.savefig('plot.png')
