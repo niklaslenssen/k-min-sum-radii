@@ -1,10 +1,10 @@
-// MEB.h
+// welzl.h
 
 #include "Ball.h"
 #include "Point.h"
 
-#ifndef MEB_H
-#define MEB_H
+#ifndef WELZL_H
+#define WELZL_H
 
 Ball welzlHelper(std::vector<Point>& points, std::vector<Point> support, int n);
 Ball makeBallThreePoints(const Point& A, const Point& B, const Point& C);
