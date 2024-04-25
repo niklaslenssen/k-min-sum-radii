@@ -6,29 +6,35 @@
 #include <random>
 #include <set>
 
-#include "header/MEB.h"
+#include "header/badoiu_clarkson.h"
+#include "header/welzl.h"
 
 using namespace std;
 
+// Berechnet den Logarithmus einer Zahl 'x' zur Basis 'b'.
 double logBase(double x, double b) { return log(x) / log(b); }
 
+// Prüft, ob jeder Punkt in der Liste 'points' von mindestens einem Ball in 'balls' enthalten ist.
 bool containsAllPoints(const vector<Point> &points, const vector<Ball> &balls) {
-  int count = 0;
-
-  for (Point p : points) {
-    for (Ball b : balls) {
+  for (const Point &p : points) {
+    bool isContained = false;
+    for (const Ball &b : balls) {
       if (b.contains(p)) {
-        count++;
+        isContained = true;
         break;
       }
     }
+    if (!isContained) {
+      return false; // Frühes Beenden, wenn ein Punkt von keinem Ball enthalten ist
+    }
   }
 
-  return (count == points.size());
+  return true; // Alle Punkte sind von mindestens einem Ball enthalten
 }
 
+// Überprüft, ob der Punkt 'p' von mindestens einem Ball in der Liste 'balls' enthalten ist.
 bool containsPoint(const Point &p, const vector<Ball> &balls) {
-  for (Ball b : balls) {
+  for (const Ball &b : balls) {
     if (b.contains(p)) {
       return true;
     }
@@ -36,29 +42,38 @@ bool containsPoint(const Point &p, const vector<Ball> &balls) {
   return false;
 }
 
-double cost(const vector<Cluster> &cluster) {
+// Berechnet die Gesamtkosten für alle Cluster basierend auf dem Radius des kleinsten einschließenden Balls.
+double cost(vector<Cluster> &cluster) {
   double result = 0;
 
-  for (Cluster c : cluster) {
-    result += findMinEnclosingBall(c.points).radius;
+  for (Cluster &c : cluster) {
+    if (!c.points.empty()) {
+      result += findMinEnclosingBall(c.points).radius;
+    }
   }
   return result;
 }
 
+// Berechnet ein Vektor von Vektoren von Radien für einen gegebenen maximalen Radius,
+// eine Anzahl von Bällen k und eine Genauigkeit epsilon.
 vector<vector<double>> getRadii(double rmax, int k, double epsilon) {
   vector<vector<double>> result;
   vector<int> indices(k - 1, 0);
   vector<double> set;
 
+  // Berechnung der Anzahl der Radien, die benötigt werden, um eine ausreichende Abdeckung sicherzustellen
   int limit = ceil(logBase((k / epsilon), (1 + epsilon)));
 
+  // Erstelle das Set der Radien, deren Potenzmenge gebildet wird.
   for (int i = 0; i <= limit; i++) {
     set.push_back(pow((1 + epsilon), i) * (epsilon / k) * rmax);
   }
 
+  // Erstelle Potenzmenge von 'set' mit 'rmax' als erstem Element.
   while (true) {
     vector<double> current;
 
+    // Der maximale Radius wird immer als erster Radius in der Kombination hinzugefügt
     current.push_back(rmax);
 
     for (int idx : indices) {
@@ -71,113 +86,101 @@ vector<vector<double>> getRadii(double rmax, int k, double epsilon) {
       indices[next] = 0;
       next--;
     }
-    if (next < 0) break;
+    if (next < 0) {
+      break;
+    }
   }
 
   return result;
 }
 
+// Generiert eine Liste von Vektoren, die jeweils zufällige Ganzzahlen zwischen 0 und k-1 enthalten.
 vector<vector<int>> getU(int k, double epsilon) {
-  int length = 8;
-  vector<vector<int>> result;
-  vector<int> indices(length, 0);
-  vector<int> set;
-
-  for (int i = 0; i < k; i++) {
-    set.push_back(i);
-  }
-
-  while (true) {
-    vector<int> current;
-
-    for (int idx : indices) {
-      current.push_back(set[idx]);
-    }
-    result.push_back(current);
-
-    int next = length - 1;
-    while (next >= 0 && ++indices[next] == set.size()) {
-      indices[next] = 0;
-      next--;
-    }
-    if (next < 0) break;
-  }
-
-  return result;
-}
-
-vector<vector<int>> getRandomU(int k, double epsilon) {
-  vector<vector<int>> result;
+  // Berechnet die Länge jedes Vektors basierend auf den gegebenen Parametern k und epsilon.
   int length = (32 * k * (1 + epsilon)) / (pow(epsilon, 3));
-  int numVectors = 100;
+
+  // Anzahl der zu generierenden Vektoren.
+  int numVectors = 1000;
+
+  vector<vector<int>> result(numVectors);
+
+  // Erzeugt einen Zufallszahlengenerator.
   random_device rd;
+
+  // Initialisiert einen Mersenne Twister-Generator mit der Seed von 'rd'.
   mt19937 gen(rd());
+
+  // Definiert eine Gleichverteilung für Ganzzahlen zwischen 0 und k-1.
   uniform_int_distribution<> distrib(0, k - 1);
 
+  // Erzeugt numVectors viele Vektoren.
   for (int i = 0; i < numVectors; i++) {
-    vector<int> currentVector;
-    for (int j = 0; j < length; j++) {
-      currentVector.push_back(distrib(gen));
+    vector<int> currentVector(length);
+
+    // Füllt den Vektor mit zufälligen Werten, die durch den Zufallsgenerator bestimmt werden.
+    for (int &value : currentVector) {
+      value = distrib(gen);
     }
-    result.push_back(currentVector);
+    result[i] = currentVector;
   }
 
   return result;
 }
 
-vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
-                       const vector<double> &radii, double epsilon) {
+// Erstellt 'k' Bälle, die alle übergebenen Punkte beinhalten.
+vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u, const vector<double> &radii, double epsilon) {
   vector<Ball> balls(k);
-
   vector<vector<Point>> Si(k);
-
   double lambda = 1 + epsilon + 2 * sqrt(epsilon);
-
   set<Point> X;
-
   vector<Ball> R;
 
-  for (int j = 0; j < Si.size(); j++) {
-    if (Si[j].size() == 1) {
-      Point center = Si[j][0];
-      double radius = (epsilon / (1 + epsilon)) * radii[j];
-      R.push_back(Ball(center, radius));
-    }
-  }
-
   for (int i = 0; i < u.size(); i++) {
-    
-    if (X.size() >= points.size()) {
-      return balls;
+    bool addedPoint = false;
+
+    // Leere die temporäre Liste von Bällen.
+    R.clear();
+
+    // Überprüfe, ob die Größe der Si gleich 1 ist und erstelle einen Ball für jeden solchen Fall.
+    for (int j = 0; j < Si.size(); j++) {
+      if (Si[j].size() == 1) {
+        Point center = Si[j][0];
+        double radius = (epsilon / (1 + epsilon)) * radii[j];
+        R.push_back(Ball(center, radius));
+      }
     }
 
-    vector<Ball> Ri = R;
-
+    // Füge den ersten ersten Punkt in 'points', der nicht von 'X' oder 'R' enthalten ist zu 'S_ui' hinzu.
     for (Point p : points) {
-      if ((X.count(p) == 0) && !containsPoint(p, Ri)) {
+      if ((X.count(p) == 0) && !containsPoint(p, R)) {
         Si[u[i]].push_back(p);
+        addedPoint = true;
         break;
       }
     }
 
+    // Wenn kein Punkt hinzugefügt wurde, breche den Vorgang ab und gib die Bälle zurück.
+    if (!addedPoint) {
+      return balls;
+    }
+
+    // Wenn die Größe von 'S_ui' größer oder gleich 2 ist, finde den Ball,
+    // der alle Punkte in 'S_ui' einschließt, und vergrößer seinen Radius um den Faktor Lambda.
     if (Si[u[i]].size() >= 2) {
       Ball b = findMinEnclosingBall(Si[u[i]]);
-      b.radius = b.radius * lambda;
+      b.radius *= lambda;
       balls[u[i]] = b;
 
+      // Füge die Punkte, die im neuen MEB von S_ui enthalten sind zu 'X' hinzu.
       for (Point p : points) {
-        for (Ball b : balls) {
-          if (b.center.coordinates.size() > 0) {
-            if (b.contains(p)) {
-              X.insert(p);
-              break;
-            }
-          }
+        if (balls[u[i]].contains(p)) {
+          X.insert(p);
         }
       }
     }
   }
 
+  // Falls es Singletons gibt, erstelle einen Ball mit Radius 0 für jeden.
   for (int i = 0; i < Si.size(); i++) {
     if (Si[i].size() == 1) {
       balls[i] = Ball(Si[i][0], 0);
@@ -187,34 +190,35 @@ vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
   return balls;
 }
 
-vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon,
-                           double rmax) {
-  vector<Cluster> cluster(k);
+// Hauptfunktion, die die Cluster berechnet.
+vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon, double rmax) {
   vector<Cluster> bestCluster(k);
-  vector<Ball> balls(k);
 
+  // Berechnung der Radien und u-Werte basierend auf 'rmax', 'k' und 'epsilon'.
   vector<vector<double>> radii = getRadii(rmax, k, epsilon);
-  vector<vector<int>> u = getRandomU(k, epsilon);
+  vector<vector<int>> u = getU(k, epsilon);
 
   cout << u.size() << " " << u[0].size() << endl;
   cout << radii.size() << " " << radii[0].size() << endl;
 
+  // Initialisiere das 'bestCluster', indem alle Punkte Teil eines Clusters sind.
   bestCluster[0].points = points;
+  double bestCost = cost(bestCluster);
 
-  double bestCost = 10000;
-
-#pragma omp parallel for collapse(2) schedule(dynamic) \
-    shared(bestCluster, bestCost)
+#pragma omp parallel for collapse(2) schedule(dynamic) shared(bestCluster, bestCost)
+  // Berechne für alle Kombinationen von 'radii' und 'u' die Cluster mit den geringsten Kosten.
   for (int i = 0; i < radii.size(); i++) {
     for (int j = 0; j < u.size(); j++) {
       vector<double> r = radii[i];
       vector<int> ui = u[j];
 
+      // Berechne Bälle basierend auf den Radien und 'u'-Werten.
       vector<Ball> localBalls = selection(points, k, ui, r, epsilon);
 
+      // Überprüfe, ob alle Punkte von den ausgewählten Bällen abgedeckt werden.
       if (containsAllPoints(points, localBalls)) {
+        // Erstelle Cluster basierend auf den ausgewählten Bällen.
         vector<Cluster> localCluster(k);
-
         for (Point p : points) {
           for (int c = 0; c < k; c++) {
             if (localBalls[c].contains(p)) {
@@ -224,10 +228,12 @@ vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon,
           }
         }
 
+        // Berechnung der Kosten für die lokalen Cluster.
         double localCost = cost(localCluster);
 
 #pragma omp critical
         {
+          // Aktualisierung des besten Clusters und Kostenwerts, falls ein besserer gefunden wird.
           if (localCost < bestCost) {
             bestCost = localCost;
             bestCluster = localCluster;
