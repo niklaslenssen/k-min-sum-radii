@@ -7,7 +7,7 @@ from sklearn.datasets import make_blobs
 from hochbaumShmyos import hochbaum_shmoys_k_center_from_csv
 
 # Anzahl der Punkte
-n_samples = 30
+n_samples = 100
 
 # Anzahl der Cluster
 k = 3
@@ -19,7 +19,7 @@ n_features = 2
 cluster_std_global = 0.3
 
 # Bereich der Centren
-center_box = (0, 8)
+center_box = (0, 50)
 
 # Seed
 random_state = 20
@@ -29,7 +29,7 @@ X, y = make_blobs(n_samples=n_samples, centers=k, n_features=n_features,
                   cluster_std=cluster_std_global, center_box=center_box, random_state=random_state)
 
 # Individuelles Rauschen für jeden Cluster definieren.
-cluster_stds = [0.3, 0.1, 0.5]
+cluster_stds = [5, 5, 5]
 
 # Füge unterschiedliches Rauschen zu jedem Cluster hinzu.
 for i in range(k):
