@@ -8,12 +8,14 @@
 #include <vector>
 
 #include "header/Cluster.h"
-#include "header/MEB.h"
 #include "header/k_MSR.h"
+#include "header/welzl.h"
+#include "header/badoiu_clarkson.h"
 
 using namespace std;
 
-void saveBallsInCSV(const vector<Ball>& balls) {
+// Schreibt die übergebenen Bälle in eine CSV Datei.
+void saveBallsInCSV(const vector<Ball> &balls) {
   ofstream ballsfile("Data/balls.csv");
 
   if (!ballsfile) {
@@ -22,15 +24,15 @@ void saveBallsInCSV(const vector<Ball>& balls) {
   }
 
   for (Ball b : balls) {
-    ballsfile << b.center.coordinates[0] << "," << b.center.coordinates[1]
-              << "," << b.radius << "\n";
+    ballsfile << b.center.coordinates[0] << "," << b.center.coordinates[1] << "," << b.radius << "\n";
   }
 
   ballsfile.close();
   return;
 }
 
-void saveClusterInCSV(const vector<Cluster>& cluster) {
+// Schreibt die übergebenen Cluster in eine CSV Datei.
+void saveClusterInCSV(const vector<Cluster> &cluster) {
   ofstream clusterfile("Data/cluster.csv");
 
   if (!clusterfile) {
@@ -42,8 +44,7 @@ void saveClusterInCSV(const vector<Cluster>& cluster) {
     Cluster c = cluster[i];
     for (int j = 0; j < c.points.size(); j++) {
       Point p = c.points[j];
-      clusterfile << p.coordinates[0] << "," << p.coordinates[1] << "," << i
-                  << endl;
+      clusterfile << p.coordinates[0] << "," << p.coordinates[1] << "," << i << endl;
     }
   }
 
@@ -51,7 +52,8 @@ void saveClusterInCSV(const vector<Cluster>& cluster) {
   return;
 }
 
-vector<Point> readPointsFromCSV(double& rmax) {
+// Liest eine Menge von Punkten und rmax von einer CSV Datei ein.
+vector<Point> readPointsFromCSV(double &rmax, int k) {
   vector<Point> points;
   ifstream file("Data/points.csv");
   string line;
@@ -84,12 +86,17 @@ vector<Point> readPointsFromCSV(double& rmax) {
   return points;
 }
 
-int main(int argc, char const* argv[]) {
-  int k = 3;
-  double epsilon = 0.5;
+int main(int argc, char const *argv[]) {
+  if(argc != 3) {
+    cerr << "Bitte übergebe einen Wert für 'k' und 'epsilon'!" << endl;
+    return -1;
+  }
+
+  int k = stod(argv[1]);
+  double epsilon = stod(argv[2]);
   double rmax;
 
-  vector<Point> points = readPointsFromCSV(rmax);
+  vector<Point> points = readPointsFromCSV(rmax, k);
 
   auto start = std::chrono::steady_clock::now();
 
@@ -97,10 +104,13 @@ int main(int argc, char const* argv[]) {
 
   auto end = std::chrono::steady_clock::now();
 
-  vector<Ball> balls(k);
+  vector<Ball> balls;
 
   for (int i = 0; i < cluster.size(); i++) {
-    balls[i] = findMinEnclosingBall(cluster[i].points);
+    Ball b = findMinEnclosingBall(cluster[i].points);
+    if(b.radius != 0) {
+      balls.push_back(b);
+    }
   }
 
   double radii = 0;
@@ -112,8 +122,7 @@ int main(int argc, char const* argv[]) {
 
   auto diff = end - start;
 
-  cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count()
-       << " Sekunden" << endl;
+  cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count() << " Sekunden" << endl;
 
   saveClusterInCSV(cluster);
   saveBallsInCSV(balls);
