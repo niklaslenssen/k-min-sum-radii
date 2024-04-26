@@ -8,9 +8,10 @@
 #include <vector>
 
 #include "header/Cluster.h"
+#include "header/badoiu_clarkson.h"
+#include "header/hochbaumShmyos.h"
 #include "header/k_MSR.h"
 #include "header/welzl.h"
-#include "header/badoiu_clarkson.h"
 
 using namespace std;
 
@@ -53,7 +54,7 @@ void saveClusterInCSV(const vector<Cluster> &cluster) {
 }
 
 // Liest eine Menge von Punkten und rmax von einer CSV Datei ein.
-vector<Point> readPointsFromCSV(double &rmax, int k) {
+vector<Point> readPointsFromCSV(int k) {
   vector<Point> points;
   ifstream file("Data/points.csv");
   string line;
@@ -63,20 +64,16 @@ vector<Point> readPointsFromCSV(double &rmax, int k) {
     exit;
   }
 
-  getline(file, line);
-
-  rmax = stod(line);
-
   while (getline(file, line)) {
     vector<double> coords;
     stringstream stream(line);
     string value;
 
+    getline(stream, value, ',');
+
     while (getline(stream, value, ',')) {
       coords.push_back(stod(value));
     }
-
-    coords.pop_back();
 
     points.push_back(Point(coords));
   }
@@ -87,16 +84,17 @@ vector<Point> readPointsFromCSV(double &rmax, int k) {
 }
 
 int main(int argc, char const *argv[]) {
-  if(argc != 3) {
+  if (argc != 3) {
     cerr << "Bitte übergebe einen Wert für 'k' und 'epsilon'!" << endl;
     return -1;
   }
 
   int k = stod(argv[1]);
   double epsilon = stod(argv[2]);
-  double rmax;
 
-  vector<Point> points = readPointsFromCSV(rmax, k);
+  vector<Point> points = readPointsFromCSV(k);
+
+  double rmax = hochbaumShmoysKCenter(points, k);
 
   auto start = std::chrono::steady_clock::now();
 
@@ -108,7 +106,7 @@ int main(int argc, char const *argv[]) {
 
   for (int i = 0; i < cluster.size(); i++) {
     Ball b = findMinEnclosingBall(cluster[i].points);
-    if(b.radius != 0) {
+    if (b.radius != 0) {
       balls.push_back(b);
     }
   }
