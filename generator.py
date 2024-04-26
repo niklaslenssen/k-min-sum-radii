@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 
 from sklearn.datasets import make_blobs
 
-from hochbaumShmyos import hochbaum_shmoys_k_center_from_csv
-
 # Anzahl der Punkte
 n_samples = 100
 
@@ -40,10 +38,6 @@ for i in range(k):
 
 # Speichern der Punkte in einer CSV Datei.
 df = pd.DataFrame(X, columns=['x', 'y'])
-df['Center'] = y
+df.insert(0, 'Center', y)
 
-rmax = hochbaum_shmoys_k_center_from_csv(df, k)
-
-with open("Data/points.csv", "w") as file:
-    file.write(f"{rmax}\n")
-df.to_csv("Data/points.csv", mode='a', index=False, header=False)
+df.to_csv("Data/points.csv", index=False, header=False)
