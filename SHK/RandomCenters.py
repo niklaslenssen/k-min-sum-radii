@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import random
 import os
 
-
 def generate_centers(config):
     centers = []
     for _ in range(config["number_centers"]):
@@ -81,9 +80,8 @@ def write_clusters_to_file(points, config):
 
         # write points to file
         file = open("Data/points.csv", "w")
-        file.write("0.01\n")
         for point in points:
-            file.write(f"{point[0]},{point[1]},2\n")
+            file.write(f"2,{point[0]},{point[1]}\n")
         file.close()
         generated_file = True
 
