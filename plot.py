@@ -18,4 +18,4 @@ def plot_cluster():
     plt.ylabel('y')
     plt.title('k-Min-Sum-Radii')
     plt.axis('equal')
-    plt.savefig('plot.png')
+    plt.savefig('Data/Plots/plot.png')
