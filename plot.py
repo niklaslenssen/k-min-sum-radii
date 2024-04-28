@@ -12,10 +12,10 @@ def plot_cluster():
     for _, ball in balls.iterrows():
         kreis = Circle((ball['x'], ball['y']), ball['radius'], fill=False, edgecolor='black', linewidth=2)
         ax.add_patch(kreis)
-        ax.plot(ball['x'], ball['y'], 'x', color='black')
+        ax.plot(ball['x'], ball['y'], '+', color='black')
 
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title('k-Min-Sum-Radii')
     plt.axis('equal')
-    plt.savefig('Data/Plots/plot.png')
+    plt.savefig('Data/Plots/schmidt.png')
