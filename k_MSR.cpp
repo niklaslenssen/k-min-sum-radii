@@ -100,7 +100,7 @@ vector<vector<int>> getU(int k, double epsilon) {
   int length = (32 * k * (1 + epsilon)) / (pow(epsilon, 3));
 
   // Anzahl der zu generierenden Vektoren.
-  int numVectors = 1000;
+  int numVectors = 50;
 
   vector<vector<int>> result(numVectors);
 
@@ -161,6 +161,13 @@ vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
 
     // Wenn kein Punkt hinzugefügt wurde, breche den Vorgang ab und gib die Bälle zurück.
     if (!addedPoint) {
+      // Falls es Singletons gibt, erstelle einen Ball mit Radius 0 für jeden.
+      for (int i = 0; i < Si.size(); i++) {
+        if (Si[i].size() == 1) {
+          balls[i] = Ball(Si[i][0], (epsilon / (1 + epsilon)) * radii[i]);
+        }
+      }
+
       return balls;
     }
 
@@ -183,7 +190,7 @@ vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
   // Falls es Singletons gibt, erstelle einen Ball mit Radius 0 für jeden.
   for (int i = 0; i < Si.size(); i++) {
     if (Si[i].size() == 1) {
-      balls[i] = Ball(Si[i][0], 0);
+      balls[i] = Ball(Si[i][0], (epsilon / (1 + epsilon)) * radii[i]);
     }
   }
 
