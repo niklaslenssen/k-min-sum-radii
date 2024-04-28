@@ -82,7 +82,7 @@ def save_plot(fileName, listOfPoints, showRadii = False, radii = None):
 
 
 def construct_plot(listOfPoints, showRadii = False, radii = None):
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots()
     
     # Ersten zwei Coordinaten
     firstCoordinate = [point.coordinates[0] for point in listOfPoints]
@@ -92,12 +92,12 @@ def construct_plot(listOfPoints, showRadii = False, radii = None):
     colors = [point.cluster for point in listOfPoints]
 
  
-    ax.scatter(firstCoordinate, secondCoordinate, alpha=0.5, c=colors)
+    ax.scatter(firstCoordinate, secondCoordinate, c=colors)
     
     # Zentren Markieren
     for i in range(0, len(listOfPoints)):
         if(listOfPoints[i].isCenter):
-            ax.scatter(listOfPoints[i].coordinates[0], listOfPoints[i].coordinates[1], marker="+", s=250, c="black")
+            ax.scatter(listOfPoints[i].coordinates[0], listOfPoints[i].coordinates[1], marker="+", c="black")
             # ggf. Radius hinzufügen
             if(showRadii):
                 circle = plt.Circle((listOfPoints[i].coordinates[0], listOfPoints[i].coordinates[1]),
@@ -105,7 +105,7 @@ def construct_plot(listOfPoints, showRadii = False, radii = None):
                 circle.set_radius(radii[listOfPoints[i].cluster])
                 ax.add_artist(circle)
             
-    
+    plt.axis('equal')
     return plt
 
 
