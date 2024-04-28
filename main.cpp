@@ -116,11 +116,11 @@ int main(int argc, char const *argv[]) {
     radii += b.radius;
   }
 
-  cout << "Summe der Radien: " << radii << endl;
 
   auto diff = end - start;
 
   cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count() << " Sekunden" << endl;
+  cout << "Schmidt:                   " << radii << endl;
 
   saveClusterInCSV(cluster);
   saveBallsInCSV(balls);
