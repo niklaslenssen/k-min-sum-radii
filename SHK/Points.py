@@ -103,7 +103,7 @@ def construct_plot(listOfPoints, showRadii = False, radii = None):
                 circle = plt.Circle((listOfPoints[i].coordinates[0], listOfPoints[i].coordinates[1]),
                                     color="black", fill=False)
                 circle.set_radius(radii[listOfPoints[i].cluster])
-                ax.add_artist(circle)
+                ax.add_patch(circle)
             
     plt.axis('equal')
     return plt
