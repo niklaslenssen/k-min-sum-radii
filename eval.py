@@ -11,12 +11,6 @@ def main():
     epsilon = 0.5
 
     
-    for _ in range(config["number_files"]):
-        centers, points = RandomCenters.generate_clusters(config)
-        if config["only_print"]:
-            RandomCenters.print_clusters(centers, points, config)
-        else:
-            RandomCenters.write_clusters_to_file(centers + points, config)
 
 
 
@@ -27,7 +21,7 @@ def main():
     imageOutputWithMerge = f"Data/Plots/WithMerge.png"
     imageOutputWithMergeIterative = f"Data/Plots/WithMergeIterative.png"
 
-    subprocess.run(['g++', '-fopenmp', '-o', 'main', 'main.cpp', 'k_MSR.cpp', 'badoiu_clarkson.cpp', 'welzl.cpp', 'hochbaumShmyos.cpp' ])
+    #subprocess.run(['g++', '-fopenmp', '-o', 'main', 'main.cpp', 'k_MSR.cpp', 'badoiu_clarkson.cpp', 'welzl.cpp', 'hochbaumShmyos.cpp' ])
     subprocess.run(['./main', f'{k}', f'{epsilon}'])
     plot.plot_cluster()
 
@@ -43,15 +37,40 @@ def main():
     Points.save_plot(imageOutputWithoutMerge, clustered_points, showRadii=True, radii=radii)
     print(f"Gonzales iterativ:         {round(rad_sum, 6)}")
 
-    _, clustered_points, rad_sum = Algorithms.merging_k_msr(points, k, use_iterative_gonzalez=False)
-    radii = Algorithms.get_radii_of_clustering(clustered_points, k)
-    Points.save_plot(imageOutputWithMerge, clustered_points, showRadii=True, radii=radii)
-    print(f"Merging Gonzales:          {round(rad_sum, 6)}")
+    # _, clustered_points, rad_sum = Algorithms.merging_k_msr(points, k, use_iterative_gonzalez=False)
+    # radii = Algorithms.get_radii_of_clustering(clustered_points, k)
+    # Points.save_plot(imageOutputWithMerge, clustered_points, showRadii=True, radii=radii)
+    # print(f"Merging Gonzales:          {round(rad_sum, 6)}")
 
-    _, clustered_points, rad_sum = Algorithms.merging_k_msr(points, k)
-    radii = Algorithms.get_radii_of_clustering(clustered_points, k)
-    Points.save_plot(imageOutputWithMergeIterative, clustered_points, showRadii=True, radii=radii)
-    print(f"Merging Gonzales iterativ: {round(rad_sum, 6)}")
+    # _, clustered_points, rad_sum = Algorithms.merging_k_msr(points, k)
+    # radii = Algorithms.get_radii_of_clustering(clustered_points, k)
+    # Points.save_plot(imageOutputWithMergeIterative, clustered_points, showRadii=True, radii=radii)
+    # print(f"Merging Gonzales iterativ: {round(rad_sum, 6)}")
+
+    fig, axs = plt.subplots(2, 2)
+
+    # Plot 1 zu Subplot (0, 0) hinzufügen
+    axs[0, 0].imshow(plt.imread(imageOutputSimpleGonzalez))
+    axs[0, 0].set_title("Gonzales")
+    axs[0, 0].axis('off')
+
+    # Plot 2 zu Subplot (0, 1) hinzufügen
+    axs[0, 1].imshow(plt.imread(imageOutputSimpleGonzalez))
+    axs[0, 1].set_title("Gonzales")
+    axs[0, 1].axis('off')
+
+    # Plot 3 zu Subplot (1, 0) hinzufügen
+    axs[1, 0].imshow(plt.imread(imageOutputWithoutMerge))
+    axs[1, 0].set_title("Gonzales iterativ")
+    axs[1, 0].axis('off')
+
+    # Plot 4 zu Subplot (1, 1) hinzufügen
+    axs[1, 1].imshow(plt.imread(imageOutputWithoutMerge))
+    axs[1, 1].set_title("Gonzales")
+    axs[1, 1].axis('off')
+
+    # Bild speichern
+    plt.savefig("combined_plots.png")
 
     return
 
