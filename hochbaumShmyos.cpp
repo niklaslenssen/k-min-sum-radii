@@ -13,10 +13,8 @@ double hochbaumShmoysKCenter(const vector<Point> &points, int k) {
   vector<double> distances(points.size());
 
   // Berechne den maximalen Abstand für die initiale Zuordnung
-  double maxDistance = 0.0;
-  for (int i = 0; i < points.size(); ++i) {
+  for (int i = 0; i < points.size(); i++) {
     distances[i] = Point::distance(points[i], centers[0]);
-    maxDistance = max(maxDistance, distances[i]);
   }
 
   // Iteriere, um die restlichen k - 1 Zentren zu finden
@@ -27,11 +25,15 @@ double hochbaumShmoysKCenter(const vector<Point> &points, int k) {
     centers.push_back(nextCenter);
 
     // Aktualisiere die Abstände für jeden Punkt zu seinem nächsten Zentrum
-    // Berechne den neuen maximalen Abstand
-    for (int i = 0; i < points.size(); ++i) {
+    for (int i = 0; i < points.size(); i++) {
       distances[i] = min(distances[i], Point::distance(points[i], nextCenter));
-      maxDistance = max(maxDistance, distances[i]);
     }
+  }
+
+  // Berechne den maximalen Abstand der Punkte zu ihren Zentren
+  double maxDistance = 0.0;
+  for (int i = 0; i < points.size(); i++) {
+    maxDistance = max(maxDistance, distances[i]);
   }
 
   return maxDistance;
