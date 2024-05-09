@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <vector>
+#include <ctime>
+#include <random>
 
 #include "header/Ball.h"
 #include "header/Point.h"
@@ -63,8 +65,8 @@ Ball welzlHelper(vector<Point> &points, vector<Point> support, int n) {
 }
 
 Ball findMinEnclosingBall(vector<Point> &points) {
-  srand(static_cast<unsigned int>(time(nullptr)));
+  default_random_engine rng(static_cast<unsigned int>(time(nullptr)));
   vector<Point> support;
-  std::random_shuffle(points.begin(), points.end());
+  shuffle(points.begin(), points.end(), rng);
   return welzlHelper(points, support, points.size());
 }
