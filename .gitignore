@@ -79,3 +79,7 @@ __pycache__/
 
 *.o
 *.obj
+
+Data/cluster.csv
+Data/balls.csv
+main
