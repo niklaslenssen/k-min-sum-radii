@@ -9,6 +9,7 @@
 
 #include "header/Cluster.h"
 #include "header/badoiu_clarkson.h"
+#include "header/heuristic.h"
 #include "header/hochbaumShmyos.h"
 #include "header/k_MSR.h"
 #include "header/welzl.h"
@@ -56,7 +57,7 @@ void saveClusterInCSV(const vector<Cluster> &cluster) {
 // Liest eine Menge von Punkten und rmax von einer CSV Datei ein.
 vector<Point> readPointsFromCSV(int k) {
   vector<Point> points;
-  ifstream file("Data/points.csv");
+  ifstream file("Data/Points/2/points_0.csv");
   string line;
 
   if (!file.is_open()) {
@@ -84,13 +85,14 @@ vector<Point> readPointsFromCSV(int k) {
 }
 
 int main(int argc, char const *argv[]) {
-  if (argc != 3) {
-    cerr << "Bitte übergebe einen Wert für 'k' und 'epsilon'!" << endl;
+  if (argc != 4) {
+    cerr << "Bitte übergebe einen Wert für 'k', 'epsilon' und die Anzahl an 'u'!" << endl;
     return -1;
   }
 
   int k = stod(argv[1]);
   double epsilon = stod(argv[2]);
+  int numVectors = stod(argv[3]);
 
   vector<Point> points = readPointsFromCSV(k);
 
@@ -98,7 +100,7 @@ int main(int argc, char const *argv[]) {
 
   auto start = std::chrono::steady_clock::now();
 
-  vector<Cluster> cluster = clustering(points, k, epsilon, rmax);
+  vector<Cluster> cluster = clustering(points, k, epsilon, rmax, numVectors);
 
   auto end = std::chrono::steady_clock::now();
 
