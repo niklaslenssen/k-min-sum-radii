@@ -95,12 +95,9 @@ vector<vector<double>> getRadii(double rmax, int k, double epsilon) {
 }
 
 // Generiert eine Liste von Vektoren, die jeweils zufällige Ganzzahlen zwischen 0 und k-1 enthalten.
-vector<vector<int>> getU(int k, double epsilon) {
+vector<vector<int>> getU(int k, double epsilon, int numVectors) {
   // Berechnet die Länge jedes Vektors basierend auf den gegebenen Parametern k und epsilon.
   int length = (32 * k * (1 + epsilon)) / (pow(epsilon, 3));
-
-  // Anzahl der zu generierenden Vektoren.
-  int numVectors = 50;
 
   vector<vector<int>> result(numVectors);
 
@@ -198,12 +195,12 @@ vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
 }
 
 // Hauptfunktion, die die Cluster berechnet.
-vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon, double rmax) {
+vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon, double rmax, int numVectors) {
   vector<Cluster> bestCluster(k);
 
   // Berechnung der Radien und u-Werte basierend auf 'rmax', 'k' und 'epsilon'.
   vector<vector<double>> radii = getRadii(rmax, k, epsilon);
-  vector<vector<int>> u = getU(k, epsilon);
+  vector<vector<int>> u = getU(k, epsilon, numVectors);
 
   cout << u.size() << " " << u[0].size() << endl;
   cout << radii.size() << " " << radii[0].size() << endl;

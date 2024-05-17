@@ -17,7 +17,7 @@ std::vector<std::vector<double>> getRadii(double rmax, int k, double epsilon);
 
 double logBase(double x, double b);
 
-std::vector<std::vector<int>> getU(int k, double epsilon);
+std::vector<std::vector<int>> getU(int k, double epsilon, int numVectors);
 
 bool containsAllPoints(const std::vector<Point>& points,
                        const std::vector<Ball>& balls);
@@ -25,6 +25,6 @@ bool containsAllPoints(const std::vector<Point>& points,
 double cost(const std::vector<Cluster>& cluster);
 
 std::vector<Cluster> clustering(const std::vector<Point>& points, int k,
-                                double epsilon, double rmax);
+                                double epsilon, double rmax, int numVectors);
 
 #endif
