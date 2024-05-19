@@ -65,11 +65,11 @@ def generate_clusters(config):
 def write_clusters_to_file(points, config, file_index):
 
     # Sicherstellen, dass das Verzeichnis existiert
-    if not os.path.exists(f"Data/Points/{config["dimensions"]}"):
-        os.makedirs(f"Data/Points/{config["dimensions"]}")
+    if not os.path.exists(f"Data/{config["dimensions"]}/Points"):
+        os.makedirs(f"Data/{config["dimensions"]}/Points")
 
     # Erzeugen des Dateinamens
-    file_name = f"Data/Points/{config["dimensions"]}/points_{file_index}.csv"
+    file_name = f"Data/{config["dimensions"]}/Points/points_{file_index}.csv"
 
     if not os.path.exists(file_name):
         file = open(file_name, "w")
@@ -143,6 +143,34 @@ def handle_arguments():
         help="minimum radius of generated clusters",
         default=0.1
     )
+    parser.add_argument(
+        "-c",
+        "--compile",
+        action="store_true",
+        help="if set, the C++ code will be recompiled",
+        default=False
+    )
+    parser.add_argument(
+        "-u",
+        "--u",
+        type=int,
+        help="amount of u",
+        default=100
+    )
+    parser.add_argument(
+        "-e",
+        "--epsilon",
+        type=float,
+        help="value for epsilon",
+        default=0.5
+    )
+    parser.add_argument(
+        "-k",
+        "--k",
+        type=int,
+        help="number of clusters",
+        default=3
+    )
     args = parser.parse_args()
 
     # Gültigkeitsprüfungen für die Argumente
@@ -158,8 +186,7 @@ def handle_arguments():
 
 
 # Hauptfunktion zum Generieren der Daten
-def generate_data():
-    config = handle_arguments()
+def generate_data(config):
     for i in range(config["number_files"]):
         # Generieren der Cluster
         centers, points = generate_clusters(config)
@@ -168,7 +195,8 @@ def generate_data():
 
 
 def main():
-    generate_data()
+    config = handle_arguments()
+    generate_data(config)
 
 
 if __name__ == "__main__":
