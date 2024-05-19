@@ -17,8 +17,9 @@
 using namespace std;
 
 // Schreibt die übergebenen Bälle in eine CSV Datei.
-void saveBallsInCSV(const vector<Ball> &balls) {
-  ofstream ballsfile("Data/balls.csv");
+void saveBallsInCSV(const vector<Ball> &balls, const string &filePath) {
+  ofstream ballsfile(filePath);
+  cout << filePath << endl;
 
   if (!ballsfile) {
     cerr << "Fehler beim Öffnen der Datei!" << endl;
@@ -34,8 +35,8 @@ void saveBallsInCSV(const vector<Ball> &balls) {
 }
 
 // Schreibt die übergebenen Cluster in eine CSV Datei.
-void saveClusterInCSV(const vector<Cluster> &cluster) {
-  ofstream clusterfile("Data/cluster.csv");
+void saveClusterInCSV(const vector<Cluster> &cluster, const string &filePath) {
+  ofstream clusterfile(filePath);
 
   if (!clusterfile) {
     cerr << "Fehler beim Öffnen der Datei!" << endl;
@@ -55,9 +56,9 @@ void saveClusterInCSV(const vector<Cluster> &cluster) {
 }
 
 // Liest eine Menge von Punkten und rmax von einer CSV Datei ein.
-vector<Point> readPointsFromCSV(int k) {
+vector<Point> readPointsFromCSV(const string &filePath) {
   vector<Point> points;
-  ifstream file("Data/Points/2/points_0.csv");
+  ifstream file(filePath);
   string line;
 
   if (!file.is_open()) {
@@ -85,7 +86,7 @@ vector<Point> readPointsFromCSV(int k) {
 }
 
 int main(int argc, char const *argv[]) {
-  if (argc != 4) {
+  if (argc != 7) {
     cerr << "Bitte übergebe einen Wert für 'k', 'epsilon' und die Anzahl an 'u'!" << endl;
     return -1;
   }
@@ -93,8 +94,11 @@ int main(int argc, char const *argv[]) {
   int k = stod(argv[1]);
   double epsilon = stod(argv[2]);
   int numVectors = stod(argv[3]);
+  string pointFilePath = argv[4];
+  string ballFilePath = argv[5];
+  string clusterFilePath = argv[6];
 
-  vector<Point> points = readPointsFromCSV(k);
+  vector<Point> points = readPointsFromCSV(pointFilePath);
 
   double rmax = hochbaumShmoysKCenter(points, k);
 
@@ -118,14 +122,13 @@ int main(int argc, char const *argv[]) {
     radii += b.radius;
   }
 
-
   auto diff = end - start;
 
   cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count() << " Sekunden" << endl;
   cout << "Schmidt:                   " << radii << endl;
 
-  saveClusterInCSV(cluster);
-  saveBallsInCSV(balls);
+  saveClusterInCSV(cluster, clusterFilePath);
+  saveBallsInCSV(balls, ballFilePath);
 
   return 0;
 }
