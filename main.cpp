@@ -9,7 +9,6 @@
 
 #include "header/Cluster.h"
 #include "header/badoiu_clarkson.h"
-#include "header/heuristic.h"
 #include "header/hochbaumShmyos.h"
 #include "header/k_MSR.h"
 #include "header/welzl.h"
