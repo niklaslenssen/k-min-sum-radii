@@ -10,6 +10,10 @@
 class Cluster {
  public:
   std::vector<Point> points;
+
+  void addPoint(const Point& p) {
+    points.push_back(p);
+  }
 };
 
 #endif

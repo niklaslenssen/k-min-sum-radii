@@ -226,7 +226,7 @@ vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon, d
         for (Point p : points) {
           for (int c = 0; c < k; c++) {
             if (localBalls[c].contains(p)) {
-              localCluster[c].points.push_back(p);
+              localCluster[c].addPoint(p);
               break;
             }
           }
