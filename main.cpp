@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "header/Cluster.h"
+#include "header/Heuristic.h"
 #include "header/badoiu_clarkson.h"
 #include "header/hochbaumShmyos.h"
 #include "header/k_MSR.h"
@@ -22,7 +23,7 @@ void saveBallsInCSV(const vector<Ball> &balls, const string &filePath) {
 
   if (!ballsfile) {
     cerr << "Fehler beim Öffnen der Datei!" << endl;
-    exit;
+    exit(1);
   }
 
   for (Ball b : balls) {
@@ -39,7 +40,7 @@ void saveClusterInCSV(const vector<Cluster> &cluster, const string &filePath) {
 
   if (!clusterfile) {
     cerr << "Fehler beim Öffnen der Datei!" << endl;
-    exit;
+    exit(1);
   }
 
   for (int i = 0; i < cluster.size(); i++) {
@@ -62,7 +63,7 @@ vector<Point> readPointsFromCSV(const string &filePath) {
 
   if (!file.is_open()) {
     cerr << "Datei konnte nicht geöffnet werden!" << endl;
-    exit;
+    exit(1);
   }
 
   while (getline(file, line)) {
@@ -84,50 +85,69 @@ vector<Point> readPointsFromCSV(const string &filePath) {
   return points;
 }
 
-int main(int argc, char const *argv[]) {
-  if (argc != 7) {
-    cerr << "Bitte übergebe einen Wert für 'k', 'epsilon' und die Anzahl an 'u'!" << endl;
-    return -1;
-  }
-
-  int k = stod(argv[1]);
-  double epsilon = stod(argv[2]);
-  int numVectors = stod(argv[3]);
-  string pointFilePath = argv[4];
-  string ballFilePath = argv[5];
-  string clusterFilePath = argv[6];
-
-  vector<Point> points = readPointsFromCSV(pointFilePath);
-
-  double rmax = hochbaumShmoysKCenter(points, k);
-
-  auto start = std::chrono::steady_clock::now();
-
-  vector<Cluster> cluster = clustering(points, k, epsilon, rmax, numVectors);
-
-  auto end = std::chrono::steady_clock::now();
-
+// Erzeugt die MEBs der übergeben Cluster.
+vector<Ball> getBallsFromCluster(vector<Cluster> &cluster) {
   vector<Ball> balls;
-
   for (int i = 0; i < cluster.size(); i++) {
     Ball b = findMinEnclosingBall(cluster[i].points);
     if (b.radius != 0) {
       balls.push_back(b);
     }
   }
+  return balls;
+}
 
+// Berechnet die Summe der Radien einer Liste von Bällen.
+double sumOfRadii(vector<Ball> &balls) {
   double radii = 0;
   for (Ball b : balls) {
     radii += b.radius;
   }
+  return radii;
+}
 
+void analyseSchmidt(vector<Point> &points, int k, double epsilon, int numVectors, string clusterFilePath, string ballFilePath) {
+  double rmax = hochbaumShmoysKCenter(points, k);
+  auto start = std::chrono::steady_clock::now();
+  vector<Cluster> cluster = clustering(points, k, epsilon, rmax, numVectors);
+  auto end = std::chrono::steady_clock::now();
+  vector<Ball> balls = getBallsFromCluster(cluster);
+  double radii = sumOfRadii(balls);
   auto diff = end - start;
-
   cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count() << " Sekunden" << endl;
   cout << "Schmidt:                   " << radii << endl;
-
   saveClusterInCSV(cluster, clusterFilePath);
   saveBallsInCSV(balls, ballFilePath);
+}
 
+void analyseGonzales(vector<Point> &points, int k, string clusterFilePath, string ballFilePath) {
+  vector<Cluster> cluster = gonzales(points, k);
+  vector<Ball> balls = getBallsFromCluster(cluster);
+  double radii = sumOfRadii(balls);
+  cout << "Gonzales:                   " << radii << endl;
+  saveClusterInCSV(cluster, clusterFilePath);
+  saveBallsInCSV(balls, ballFilePath);
+}
+
+int main(int argc, char const *argv[]) {
+  if (string(argv[1]) == "s") {
+    int k = stod(argv[2]);
+    double epsilon = stod(argv[3]);
+    int numVectors = stod(argv[4]);
+    string pointFilePath = argv[5];
+    string ballFilePath = argv[6];
+    string clusterFilePath = argv[7];
+
+    vector<Point> points = readPointsFromCSV(pointFilePath);
+    analyseSchmidt(points, k, epsilon, numVectors, clusterFilePath, ballFilePath);
+  } else if (string(argv[1]) == "g") {
+    int k = stod(argv[2]);
+    string pointFilePath = argv[3];
+    string ballFilePath = argv[4];
+    string clusterFilePath = argv[5];
+
+    vector<Point> points = readPointsFromCSV(pointFilePath);
+    analyseGonzales(points, k, clusterFilePath, ballFilePath);
+  }
   return 0;
 }
