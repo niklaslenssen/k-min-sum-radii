@@ -36,9 +36,60 @@ def main():
     # Ausführung der Schmidt und Gonzales Algorithmen
     schmidt(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory)
     gonzales(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory)
+    k_means_plus_plus(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory)
 
     # Vergleich der Ergebnisse der beiden Algorithmen
-    compare_schmidt_gonzales(config)
+    compare_algorithms(config)
+
+
+def k_means_plus_plus(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory):
+    # Anzahl der Cluster
+    k = config['k']
+
+    # Verzeichnisse erstellen, falls sie nicht existieren
+    os.makedirs(os.path.join(ball_directory, 'KMeansPlusPlus'), exist_ok=True)
+    os.makedirs(os.path.join(cluster_directory, 'KMeansPlusPlus'), exist_ok=True)
+    os.makedirs(os.path.join(plot_directory, 'KMeansPlusPlus'), exist_ok=True)
+    os.makedirs(os.path.join(f'Data/{config['dimensions']}/Results', "KMeansPlusPlus"), exist_ok=True)
+
+    # Regex-Muster zum Extrahieren der Nummer aus dem Dateinamen
+    pattern = r"points_(\d+)\.csv"
+    # Regex-Muster zur Extraktion der Radii-Information
+    radii_pattern = re.compile(r"KMeans\+\+:\s+([\d\.]+)")
+
+    results = []
+
+    for point_file in point_files:
+        # Nummer aus dem Dateinamen extrahieren
+        match = re.search(pattern, point_file)
+        if match:
+            number = match.group(1)
+
+        point_path = os.path.join(point_directory, point_file)
+        ball_path = os.path.join(ball_directory, 'KMeansPlusPlus', f'balls_{number}.csv')
+        cluster_path = os.path.join(cluster_directory, 'KMeansPlusPlus', f'cluster_{number}.csv')
+        plot_path = os.path.join(plot_directory, 'KMeansPlusPlus', f'plot_{number}.png')
+
+        # Ausführen des C++ Programms mit den entsprechenden Parametern
+        result = subprocess.run(['./main', 'k', str(k), point_path, ball_path, cluster_path], capture_output=True, text=True)
+
+        # Ergebnis aus der Programmausgabe parsen
+        radii = parse_output(result.stdout, radii_pattern)
+
+        # Ergebnisse speichern
+        results.append((point_file, radii))
+
+        # Cluster plotten und speichern
+        plot.plot_cluster(cluster_path, ball_path, plot_path)
+    
+    # Ergebnisse sortieren nach Dateiname
+    results.sort(key=lambda x: (x[0]))
+
+    # Ergebnisse in eine CSV-Datei schreiben
+    with open(f'Data/{config['dimensions']}/Results/KMeansPlusPlus/results.csv', 'w') as f:
+        f.write('Datei,Radii\n')
+        for point_file, radii in results:
+            f.write(f"{point_file},{radii}\n")
 
 
 def gonzales(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory):
@@ -53,6 +104,8 @@ def gonzales(point_files, config, ball_directory, cluster_directory, plot_direct
 
     # Regex-Muster zum Extrahieren der Nummer aus dem Dateinamen
     pattern = r"points_(\d+)\.csv"
+    # Regex-Muster zur Extraktion der Radii-Information
+    radii_pattern = re.compile(r"Gonzales:\s+([\d\.]+)")
 
     results = []
 
@@ -71,7 +124,7 @@ def gonzales(point_files, config, ball_directory, cluster_directory, plot_direct
         result = subprocess.run(['./main', 'g', str(k), point_path, ball_path, cluster_path], capture_output=True, text=True)
 
         # Ergebnis aus der Programmausgabe parsen
-        radii = parse_output(result.stdout)
+        radii = parse_output(result.stdout, radii_pattern)
 
         # Ergebnisse speichern
         results.append((point_file, radii))
@@ -92,7 +145,7 @@ def gonzales(point_files, config, ball_directory, cluster_directory, plot_direct
 def schmidt(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory):
     # Werte für epsilon und u definieren
     epsilon_values = [0.5]
-    u_values = [1] + list(range(100, 201, 100))
+    u_values = [1] + list(range(10, 101, 20))
     # Anzahl der Cluster
     k = config['k']
 
@@ -170,11 +223,8 @@ def parse_output_schmidt(output):
     return duration, radii
 
 
-def parse_output(output):
+def parse_output(output, radii_pattern):
     radii = None
-
-    # Regex-Muster zur Extraktion der Radii-Information
-    radii_pattern = re.compile(r"Gonzales:\s+([\d\.]+)")
 
     # Suche nach dem Muster in der gesamten Ausgabe
     radii_match = radii_pattern.search(output)
@@ -284,10 +334,11 @@ def find_last_significant_improvement_u(df):
 
     return last_significant_improvement_u
 
-def compare_schmidt_gonzales(config):
+def compare_algorithms(config):
     # Lade die Ergebnisse
     schmidt_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/Schmidt/results.csv')
     gonzales_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/Gonzales/results.csv')
+    kmeans_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/KMeansPlusPlus/results.csv')
 
     # Finden der besten Kombination von u und epsilon für Schmidt
     best_combination = schmidt_results.groupby(['u', 'epsilon'])['Radii'].mean().idxmin()
@@ -297,9 +348,11 @@ def compare_schmidt_gonzales(config):
     # Berechne den durchschnittlichen Radius für jede Methode
     schmidt_avg_radius = best_schmidt_results['Radii'].mean()
     gonzales_avg_radius = gonzales_results['Radii'].mean()
+    kmeans_avg_radius = kmeans_results['Radii'].mean()
 
-    print(f"Durchschnittlicher Radius für Schmidt (beste Kombination u={best_u}, epsilon={best_epsilon}): {schmidt_avg_radius}")
-    print(f"Durchschnittlicher Radius für Gonzales: {gonzales_avg_radius}")
+    print(f"Durchschnittlicher Radius für Schmidt (beste Kombination u={best_u}, epsilon={best_epsilon}): {schmidt_avg_radius:.4f}")
+    print(f"Durchschnittlicher Radius für Gonzales: {gonzales_avg_radius:.4f}")
+    print(f"Durchschnittlicher Radius für KMeans++: {kmeans_avg_radius:.4f}")
 
     # Paarweise Vergleiche der Radien
     paired_results = pd.merge(
@@ -309,27 +362,38 @@ def compare_schmidt_gonzales(config):
         suffixes=('_Schmidt', '_Gonzales')
     )
 
-    paired_results['Better_Algorithm'] = paired_results.apply(
-        lambda row: 'Schmidt' if row['Radii_Schmidt'] < row['Radii_Gonzales'] else 'Gonzales',
+    paired_results = pd.merge(
+        paired_results,
+        kmeans_results[['Datei', 'Radii']],
+        on='Datei'
+    )
+
+    paired_results.rename(columns={'Radii': 'Radii_KMeans'}, inplace=True)
+
+    paired_results['Best_Algorithm'] = paired_results.apply(
+        lambda row: min(('Schmidt', row['Radii_Schmidt']), ('Gonzales', row['Radii_Gonzales']), ('KMeans++', row['Radii_KMeans']), key=lambda x: x[1])[0],
         axis=1
     )
 
-    # Berechnung der Prozentwerte für den besseren Algorithmus
-    schmidt_better_count = paired_results[paired_results['Better_Algorithm'] == 'Schmidt'].shape[0]
-    gonzales_better_count = paired_results[paired_results['Better_Algorithm'] == 'Gonzales'].shape[0]
+    # Berechnung der Prozentwerte für den besten Algorithmus
+    schmidt_better_count = paired_results[paired_results['Best_Algorithm'] == 'Schmidt'].shape[0]
+    gonzales_better_count = paired_results[paired_results['Best_Algorithm'] == 'Gonzales'].shape[0]
+    kmeans_better_count = paired_results[paired_results['Best_Algorithm'] == 'KMeans++'].shape[0]
     total_count = paired_results.shape[0]
 
     schmidt_better_percentage = (schmidt_better_count / total_count) * 100
     gonzales_better_percentage = (gonzales_better_count / total_count) * 100
+    kmeans_better_percentage = (kmeans_better_count / total_count) * 100
 
     print(f"Schmidt liefert bessere Ergebnisse in {schmidt_better_percentage:.2f}% der Fälle.")
     print(f"Gonzales liefert bessere Ergebnisse in {gonzales_better_percentage:.2f}% der Fälle.")
+    print(f"KMeans++ liefert bessere Ergebnisse in {kmeans_better_percentage:.2f}% der Fälle.")
 
     # Ergebnisse in ein DataFrame packen für den Vergleich
     comparison_df = pd.DataFrame({
-        'Methode': ['Schmidt', 'Gonzales'],
-        'Durchschnittlicher Radius': [schmidt_avg_radius, gonzales_avg_radius],
-        'Besser in % der Fälle': [schmidt_better_percentage, gonzales_better_percentage]
+        'Methode': ['Schmidt', 'Gonzales', 'KMeans++'],
+        'Durchschnittlicher Radius': [schmidt_avg_radius, gonzales_avg_radius, kmeans_avg_radius],
+        'Besser in % der Fälle': [schmidt_better_percentage, gonzales_better_percentage, kmeans_better_percentage]
     })
 
     # Ergebnisse als Tabelle speichern

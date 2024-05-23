@@ -106,7 +106,7 @@ double sumOfRadii(vector<Ball> &balls) {
   return radii;
 }
 
-void analyseSchmidt(vector<Point> &points, int k, double epsilon, int numVectors, string clusterFilePath, string ballFilePath) {
+void analyseSchmidt(vector<Point> &points, int k, double epsilon, int numVectors, string &clusterFilePath, string &ballFilePath) {
   double rmax = hochbaumShmoysKCenter(points, k);
   auto start = std::chrono::steady_clock::now();
   vector<Cluster> cluster = clustering(points, k, epsilon, rmax, numVectors);
@@ -120,11 +120,20 @@ void analyseSchmidt(vector<Point> &points, int k, double epsilon, int numVectors
   saveBallsInCSV(balls, ballFilePath);
 }
 
-void analyseGonzales(vector<Point> &points, int k, string clusterFilePath, string ballFilePath) {
+void analyseGonzales(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
   vector<Cluster> cluster = gonzales(points, k);
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
   cout << "Gonzales:                   " << radii << endl;
+  saveClusterInCSV(cluster, clusterFilePath);
+  saveBallsInCSV(balls, ballFilePath);
+}
+
+void analyseKMeansPlusPlus(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
+  vector<Cluster> cluster = kMeansPlusPlus(points, k);
+  vector<Ball> balls = getBallsFromCluster(cluster);
+  double radii = sumOfRadii(balls);
+  cout << "KMeans++:                   " << radii << endl;
   saveClusterInCSV(cluster, clusterFilePath);
   saveBallsInCSV(balls, ballFilePath);
 }
@@ -148,6 +157,14 @@ int main(int argc, char const *argv[]) {
 
     vector<Point> points = readPointsFromCSV(pointFilePath);
     analyseGonzales(points, k, clusterFilePath, ballFilePath);
+  } else if (string(argv[1]) == "k") {
+    int k = stod(argv[2]);
+    string pointFilePath = argv[3];
+    string ballFilePath = argv[4];
+    string clusterFilePath = argv[5];
+
+    vector<Point> points = readPointsFromCSV(pointFilePath);
+    analyseKMeansPlusPlus(points, k, clusterFilePath, ballFilePath);
   }
   return 0;
 }
