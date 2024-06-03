@@ -6,7 +6,7 @@
 #include <random>
 #include <set>
 
-#include "header/badoiu_clarkson.h"
+#include "header/yildirim.h"
 #include "header/welzl.h"
 
 using namespace std;
@@ -171,7 +171,7 @@ vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
     // Wenn die Größe von 'S_ui' größer oder gleich 2 ist, finde den Ball,
     // der alle Punkte in 'S_ui' einschließt, und vergrößer seinen Radius um den Faktor Lambda.
     if (Si[u[i]].size() >= 2) {
-      Ball b = findMinEnclosingBall(Si[u[i]]);
+      Ball b = findMEB(Si[u[i]], epsilon);
       b.radius *= lambda;
       balls[u[i]] = b;
 
