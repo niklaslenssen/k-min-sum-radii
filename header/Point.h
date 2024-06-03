@@ -34,6 +34,25 @@ class Point {
   bool operator<(const Point& other) const {
     return coordinates < other.coordinates;
   }
+
+  Point operator+(const Point& other) const {
+    if (coordinates.size() != other.coordinates.size()) {
+      throw std::invalid_argument("Die Punkte müssen dieselbe Dimension haben!");
+    }
+    std::vector<double> result_coords(coordinates.size());
+    for (int i = 0; i < coordinates.size(); i++) {
+      result_coords[i] = coordinates[i] + other.coordinates[i];
+    }
+    return Point(result_coords);
+  }
+
+  Point operator*(double scalar) const {
+    std::vector<double> result_coords(coordinates.size());
+    for (int i = 0; i < coordinates.size(); i++) {
+      result_coords[i] = coordinates[i] * scalar;
+    }
+    return Point(result_coords);
+  }
 };
 
 #endif
