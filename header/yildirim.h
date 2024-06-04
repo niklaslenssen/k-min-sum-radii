@@ -1,10 +1,10 @@
-// badoiu_clarkson.h
+// yildirim.h
 
 #include "Ball.h"
 #include "Point.h"
 
-#ifndef BADOIU_CLARKSON_H
-#define BADOIU_CLARKSON_H
+#ifndef YILDIRIM_H
+#define YILDIRIM_H
 
 Ball findMEB(const std::vector<Point> &points, double epsilon);
 
