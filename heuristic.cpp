@@ -1,5 +1,11 @@
+#include <algorithm>
+#include <random>
+
+#include "header/Ball.h"
 #include "header/Cluster.h"
 #include "header/Point.h"
+#include "header/yildirim.h"
+#include <iostream>
 
 #include <random>
 
@@ -101,4 +107,44 @@ vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
   // Erstelle Cluster basierend auf den Zentren
   vector<Cluster> clusters = assignPointsToCluster(points, centers, k);
   return clusters;
+}
+
+double findLargestDistanceBeforeFirstJump(const vector<Point> &points, int k) {
+  int n = points.size();
+  vector<vector<double>> distances(n, vector<double>(n));
+
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      distances[i][j] = Point::distance(points[i], points[j]);
+    }
+  }
+  double x = 0;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      x += distances[i][j];
+    }
+  }
+
+  return x / (n * n);
+}
+
+Ball heuristik(vector<Point> &points, int k) {
+  double radien = findLargestDistanceBeforeFirstJump(points, k);
+  int bestCount = 0;
+  double bestRadius = 0;
+  Point bestCenter;
+  for (int i = 0; i < points.size(); i++) {
+    int count = 0;
+    for (Point point : points) {
+      if (points[i].distanceTo(point) <= radien) {
+        count++;
+      }
+    }
+    if (count > bestCount) {
+      bestCenter = points[i];
+      bestCount = count;
+      bestRadius = radien;
+    }
+  }
+  return Ball(bestCenter, bestRadius);
 }

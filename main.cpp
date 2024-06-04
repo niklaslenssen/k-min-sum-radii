@@ -9,8 +9,8 @@
 
 #include "header/Cluster.h"
 #include "header/Heuristic.h"
-#include "header/badoiu_clarkson.h"
-#include "header/hochbaumShmyos.h"
+#include "header/yildirim.h"
+#include "header/gonzales.h"
 #include "header/k_MSR.h"
 #include "header/welzl.h"
 
@@ -19,7 +19,6 @@ using namespace std;
 // Schreibt die übergebenen Bälle in eine CSV Datei.
 void saveBallsInCSV(const vector<Ball> &balls, const string &filePath) {
   ofstream ballsfile(filePath);
-  cout << filePath << endl;
 
   if (!ballsfile) {
     cerr << "Fehler beim Öffnen der Datei!" << endl;
@@ -107,7 +106,7 @@ double sumOfRadii(vector<Ball> &balls) {
 }
 
 void analyseSchmidt(vector<Point> &points, int k, double epsilon, int numVectors, string &clusterFilePath, string &ballFilePath) {
-  double rmax = hochbaumShmoysKCenter(points, k);
+  double rmax = gonzalesrmax(points, k);
   auto start = std::chrono::steady_clock::now();
   vector<Cluster> cluster = clustering(points, k, epsilon, rmax, numVectors);
   auto end = std::chrono::steady_clock::now();
@@ -133,13 +132,24 @@ void analyseKMeansPlusPlus(vector<Point> &points, int k, string &clusterFilePath
   vector<Cluster> cluster = kMeansPlusPlus(points, k);
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
-  cout << "KMeans++:                   " << radii << endl;
+  cout << "KMeansPlusPlus:                   " << radii << endl;
+  saveClusterInCSV(cluster, clusterFilePath);
+  saveBallsInCSV(balls, ballFilePath);
+}
+
+void analyseHeuristik(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
+  vector<Ball> balls;
+  vector<Cluster> cluster(1);
+  cluster[0].points = points;
+  balls.push_back(heuristik(points, k));
+  double radii = sumOfRadii(balls);
+  cout << "Heuristik:                   " << radii << endl;
   saveClusterInCSV(cluster, clusterFilePath);
   saveBallsInCSV(balls, ballFilePath);
 }
 
 int main(int argc, char const *argv[]) {
-  if (string(argv[1]) == "s") {
+  if (string(argv[1]) == "Schmidt") {
     int k = stod(argv[2]);
     double epsilon = stod(argv[3]);
     int numVectors = stod(argv[4]);
@@ -149,7 +159,7 @@ int main(int argc, char const *argv[]) {
 
     vector<Point> points = readPointsFromCSV(pointFilePath);
     analyseSchmidt(points, k, epsilon, numVectors, clusterFilePath, ballFilePath);
-  } else if (string(argv[1]) == "g") {
+  } else if (string(argv[1]) == "Gonzales") {
     int k = stod(argv[2]);
     string pointFilePath = argv[3];
     string ballFilePath = argv[4];
@@ -157,7 +167,7 @@ int main(int argc, char const *argv[]) {
 
     vector<Point> points = readPointsFromCSV(pointFilePath);
     analyseGonzales(points, k, clusterFilePath, ballFilePath);
-  } else if (string(argv[1]) == "k") {
+  } else if (string(argv[1]) == "KMeansPlusPlus") {
     int k = stod(argv[2]);
     string pointFilePath = argv[3];
     string ballFilePath = argv[4];
@@ -165,6 +175,14 @@ int main(int argc, char const *argv[]) {
 
     vector<Point> points = readPointsFromCSV(pointFilePath);
     analyseKMeansPlusPlus(points, k, clusterFilePath, ballFilePath);
+  } else if (string(argv[1]) == "Heuristik") {
+    int k = stod(argv[2]);
+    string pointFilePath = argv[3];
+    string ballFilePath = argv[4];
+    string clusterFilePath = argv[5];
+
+    vector<Point> points = readPointsFromCSV(pointFilePath);
+    analyseHeuristik(points, k, clusterFilePath, ballFilePath);
   }
   return 0;
 }
