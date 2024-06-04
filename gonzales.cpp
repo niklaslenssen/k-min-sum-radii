@@ -1,10 +1,10 @@
-#include "header/hochbaumShmyos.h"
+#include "header/gonzales.h"
 #include "header/Point.h"
 #include <algorithm>
 
 using namespace std;
 
-double hochbaumShmoysKCenter(const vector<Point> &points, int k) {
+double gonzalesrmax(const vector<Point> &points, int k) {
   vector<Point> centers;
 
   // Wähle den ersten Punkt zufällig aus den Eingabepunkten
