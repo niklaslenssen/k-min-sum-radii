@@ -13,7 +13,7 @@ def main():
 
     # Kompilieren des C++ Codes, falls erforderlich
     if config['compile']:
-        result = subprocess.run(['g++', '-fopenmp', '-o', 'main', 'main.cpp', 'k_MSR.cpp', 'yildirim.cpp', 'welzl.cpp', 'hochbaumShmyos.cpp', 'heuristic.cpp'])
+        result = subprocess.run(['g++', '-fopenmp', '-o', 'main', 'main.cpp', 'k_MSR.cpp', 'yildirim.cpp', 'welzl.cpp', 'gonzales.cpp', 'heuristic.cpp'])
         if result.returncode != 0:
             print('Fehler bei der Kompilierung.')
             return
