@@ -96,7 +96,7 @@ def cluster(point_files, config, ball_directory, cluster_directory, plot_directo
 def schmidt(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory):
     # Werte für epsilon und u definieren
     epsilon_values = [0.5]
-    u_values = [10, 100, 1000]
+    u_values = [1, 10, 100, 1000]
     # Anzahl der Cluster
     k = config['k']
 
@@ -343,6 +343,30 @@ def compare_algorithms(config):
     # Ergebnisse als Tabelle speichern
     comparison_df.to_csv(f'Data/{config["dimensions"]}/Results/comparison.csv', index=False)
 
+    # Dateien, bei denen jeder Algorithmus am besten ist, speichern
+    schmidt_better_files = paired_results[paired_results['Best_Algorithm'] == 'Schmidt'][['Datei']].sort_values(by='Datei')
+    gonzales_better_files = paired_results[paired_results['Best_Algorithm'] == 'Gonzales'][['Datei']].sort_values(by='Datei')
+    kmeans_better_files = paired_results[paired_results['Best_Algorithm'] == 'KMeans++'][['Datei']].sort_values(by='Datei')
+
+    schmidt_better_files.to_csv(f'Data/{config["dimensions"]}/Results/Schmidt/better_files.csv', index=False)
+    gonzales_better_files.to_csv(f'Data/{config["dimensions"]}/Results/Gonzales/better_files.csv', index=False)
+    kmeans_better_files.to_csv(f'Data/{config["dimensions"]}/Results/KMeansPlusPlus/better_files.csv', index=False)
+
+    # Markdown-Datei erstellen
+    with open(f'Data/{config["dimensions"]}/Results/comparison.md', 'w') as md_file:
+        md_file.write("# Vergleich der Clustering-Algorithmen\n")
+        md_file.write("\n")
+        md_file.write("## Durchschnittlicher Radius\n")
+        md_file.write("| Methode   | Durchschnittlicher Radius |\n")
+        md_file.write("|-----------|---------------------------|\n")
+        for index, row in comparison_df.iterrows():
+            md_file.write(f"| {row['Methode']} | {row['Durchschnittlicher Radius']:.4f} |\n")
+        md_file.write("\n")
+        md_file.write("## Besser in % der Fälle\n")
+        md_file.write("| Methode   | Besser in % der Fälle |\n")
+        md_file.write("|-----------|-----------------------|\n")
+        for index, row in comparison_df.iterrows():
+            md_file.write(f"| {row['Methode']} | {row['Besser in % der Fälle']:.2f}% |\n")
 
 
 if __name__ == "__main__":
