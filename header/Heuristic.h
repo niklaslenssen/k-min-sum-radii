@@ -9,6 +9,6 @@
 
 std::vector<Cluster> gonzales(std::vector<Point> &points, int k);
 std::vector<Cluster> kMeansPlusPlus(std::vector<Point> &points, int k);
-Ball heuristik(std::vector<Point> &points, int k);
+std::vector<Cluster> heuristik(std::vector<Point> &points, int k);
 
 #endif
