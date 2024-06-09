@@ -1,3 +1,4 @@
+from logging import config
 import generator
 import subprocess
 import plot
@@ -270,7 +271,7 @@ def compare_algorithms(config):
     schmidt_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/Schmidt/results.csv')
     gonzales_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/Gonzales/results.csv')
     kmeans_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/KMeansPlusPlus/results.csv')
-    bruteforce_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/Heuristik/results.csv')
+    heuristik_results = pd.read_csv(f'Data/{config["dimensions"]}/Results/Heuristik/results.csv')
 
     # Finden der besten Kombination von u und epsilon für Schmidt
     best_combination = schmidt_results.groupby(['u', 'epsilon'])['Radii'].mean().idxmin()
@@ -281,12 +282,12 @@ def compare_algorithms(config):
     schmidt_avg_radius = best_schmidt_results['Radii'].mean()
     gonzales_avg_radius = gonzales_results['Radii'].mean()
     kmeans_avg_radius = kmeans_results['Radii'].mean()
-    bruteforce_avg_radius = bruteforce_results['Radii'].mean()
+    heuristik_avg_radius = heuristik_results['Radii'].mean()
 
     print(f"Durchschnittlicher Radius für Schmidt (beste Kombination u={best_u}, epsilon={best_epsilon}): {schmidt_avg_radius:.4f}")
     print(f"Durchschnittlicher Radius für Gonzales: {gonzales_avg_radius:.4f}")
     print(f"Durchschnittlicher Radius für KMeans++: {kmeans_avg_radius:.4f}")
-    print(f"Durchschnittlicher Radius für BruteForce: {bruteforce_avg_radius:.4f}")
+    print(f"Durchschnittlicher Radius für die Heuristik: {heuristik_avg_radius:.4f}")
 
     # Paarweise Vergleiche der Radien
     paired_results = pd.merge(
@@ -304,9 +305,17 @@ def compare_algorithms(config):
 
     paired_results.rename(columns={'Radii': 'Radii_KMeans'}, inplace=True)
 
+    paired_results = pd.merge(
+        paired_results, 
+        heuristik_results[['Datei', 'Radii']], 
+        on='Datei'
+    )
+
+    paired_results.rename(columns={'Radii': 'Radii_Heuristik'}, inplace=True)
+
     # Berechnung der besten Algorithmen
     paired_results['Best_Algorithm'] = paired_results.apply(
-        lambda row: min(('Schmidt', row['Radii_Schmidt']), ('Gonzales', row['Radii_Gonzales']), ('KMeans++', row['Radii_KMeans']), key=lambda x: x[1])[0],
+        lambda row: min(('Schmidt', row['Radii_Schmidt']), ('Gonzales', row['Radii_Gonzales']), ('KMeans++', row['Radii_KMeans']), ('Heuristik', row['Radii_Heuristik']), key=lambda x: x[1])[0],
         axis=1
     )
 
@@ -314,11 +323,13 @@ def compare_algorithms(config):
     schmidt_better_count = paired_results[paired_results['Best_Algorithm'] == 'Schmidt'].shape[0]
     gonzales_better_count = paired_results[paired_results['Best_Algorithm'] == 'Gonzales'].shape[0]
     kmeans_better_count = paired_results[paired_results['Best_Algorithm'] == 'KMeans++'].shape[0]
+    heuristik_better_count = paired_results[paired_results['Best_Algorithm'] == 'Heuristik'].shape[0]
     
     # Zählen der Fälle, in denen die Algorithmen das gleiche Ergebnis haben
     same_result_count = paired_results[
         (paired_results['Radii_Schmidt'] == paired_results['Radii_Gonzales']) & 
-        (paired_results['Radii_Gonzales'] == paired_results['Radii_KMeans'])
+        (paired_results['Radii_Gonzales'] == paired_results['Radii_KMeans']) &
+        (paired_results['Radii_KMeans'] == paired_results['Radii_Heuristik'])
     ].shape[0]
 
     total_count = paired_results.shape[0]
@@ -326,18 +337,21 @@ def compare_algorithms(config):
     schmidt_better_percentage = (schmidt_better_count / total_count) * 100
     gonzales_better_percentage = (gonzales_better_count / total_count) * 100
     kmeans_better_percentage = (kmeans_better_count / total_count) * 100
+    heuristik_better_percentage = (heuristik_better_count / total_count) * 100
     same_result_percentage = (same_result_count / total_count) * 100
 
     print(f"Schmidt liefert bessere Ergebnisse in {schmidt_better_percentage:.2f}% der Fälle.")
     print(f"Gonzales liefert bessere Ergebnisse in {gonzales_better_percentage:.2f}% der Fälle.")
     print(f"KMeans++ liefert bessere Ergebnisse in {kmeans_better_percentage:.2f}% der Fälle.")
+    print(f"Die Heuristik liefert bessere Ergebnisse in {heuristik_better_percentage:.2f}% der Fälle.")
     print(f"Alle Algorithmen liefern das gleiche Ergebnis in {same_result_percentage:.2f}% der Fälle.")
 
     # Ergebnisse in ein DataFrame packen für den Vergleich
     comparison_df = pd.DataFrame({
-        'Methode': ['Schmidt', 'Gonzales', 'KMeans++', 'Alle gleich'],
-        'Anzahl besserer Ergebnisse': [schmidt_better_count, gonzales_better_count, kmeans_better_count, same_result_count],
-        'Besser in % der Fälle': [schmidt_better_percentage, gonzales_better_percentage, kmeans_better_percentage, same_result_percentage]
+        'Methode': ['Schmidt', 'Gonzales', 'KMeans++', 'Heuristik', 'Alle gleich'],
+        'Durchschnittlicher Radius': [schmidt_avg_radius, gonzales_avg_radius, kmeans_avg_radius, heuristik_avg_radius, None],
+        'Anzahl besserer Ergebnisse': [schmidt_better_count, gonzales_better_count, kmeans_better_count, heuristik_better_count, same_result_count],
+        'Besser in % der Fälle': [schmidt_better_percentage, gonzales_better_percentage, kmeans_better_percentage, heuristik_better_percentage, same_result_percentage]
     })
 
     # Ergebnisse als Tabelle speichern
@@ -347,10 +361,12 @@ def compare_algorithms(config):
     schmidt_better_files = paired_results[paired_results['Best_Algorithm'] == 'Schmidt'][['Datei']].sort_values(by='Datei')
     gonzales_better_files = paired_results[paired_results['Best_Algorithm'] == 'Gonzales'][['Datei']].sort_values(by='Datei')
     kmeans_better_files = paired_results[paired_results['Best_Algorithm'] == 'KMeans++'][['Datei']].sort_values(by='Datei')
+    heuristik_better_files = paired_results[paired_results['Best_Algorithm'] == 'Heuristik'][['Datei']].sort_values(by='Datei')
 
     schmidt_better_files.to_csv(f'Data/{config["dimensions"]}/Results/Schmidt/better_files.csv', index=False)
     gonzales_better_files.to_csv(f'Data/{config["dimensions"]}/Results/Gonzales/better_files.csv', index=False)
     kmeans_better_files.to_csv(f'Data/{config["dimensions"]}/Results/KMeansPlusPlus/better_files.csv', index=False)
+    heuristik_better_files.to_csv(f'Data/{config["dimensions"]}/Results/Heuristik/better_files.csv', index=False)
 
     # Markdown-Datei erstellen
     with open(f'Data/{config["dimensions"]}/Results/comparison.md', 'w') as md_file:
@@ -370,4 +386,5 @@ def compare_algorithms(config):
 
 
 if __name__ == "__main__":
-    main()
+    config = generator.handle_arguments()
+    compare_algorithms(config)
