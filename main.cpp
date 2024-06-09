@@ -138,10 +138,8 @@ void analyseKMeansPlusPlus(vector<Point> &points, int k, string &clusterFilePath
 }
 
 void analyseHeuristik(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
-  vector<Ball> balls;
-  vector<Cluster> cluster(1);
-  cluster[0].points = points;
-  balls.push_back(heuristik(points, k));
+  vector<Cluster> cluster = heuristik(points, k);
+  vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
   cout << "Heuristik:                   " << radii << endl;
   saveClusterInCSV(cluster, clusterFilePath);
