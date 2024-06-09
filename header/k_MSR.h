@@ -22,7 +22,7 @@ std::vector<std::vector<int>> getU(int k, double epsilon, int numVectors);
 bool containsAllPoints(const std::vector<Point>& points,
                        const std::vector<Ball>& balls);
 
-double cost(const std::vector<Cluster>& cluster);
+double cost(std::vector<Cluster>& cluster);
 
 std::vector<Cluster> clustering(const std::vector<Point>& points, int k,
                                 double epsilon, double rmax, int numVectors);
