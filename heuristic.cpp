@@ -88,6 +88,26 @@ vector<Cluster> mergeCluster(vector<Cluster> &clusters) {
   return clusters;
 }
 
+// Berechnet den Schwerpunkt (Centroid) des Clusters
+Point computeCentroid(vector<Point> &points) {
+  int dimension = points[0].coordinates.size();
+  vector<double> centroidCoords(dimension, 0.0);
+
+  // Summe der Koordinaten aller Punkte im Cluster
+  for (const Point &p : points) {
+    for (int i = 0; i < dimension; i++) {
+      centroidCoords[i] += p.coordinates[i];
+    }
+  }
+
+  // Mittelwert der Koordinaten berechnen
+  for (int i = 0; i < dimension; i++) {
+    centroidCoords[i] /= points.size();
+  }
+
+  return Point(centroidCoords);
+}
+
 vector<Cluster> gonzales(vector<Point> &points, int k) {
   int n = points.size();
   vector<Point> centers;
@@ -160,8 +180,25 @@ vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
     }
   }
 
-  // Erstelle Cluster basierend auf den Zentren
-  vector<Cluster> clusters = assignPointsToCluster(points, centers, k);
+  vector<Cluster> clusters;
+  bool changed = true;
+  while (changed) {
+    changed = false;
+
+    // Weise die Punkte den Zentren zu und erstelle Cluster
+    clusters = assignPointsToCluster(points, centers, k);
+
+    // Aktualisiere die Zentren basierend auf den Clustern
+    for (int i = 0; i < k; i++) {
+      Point newCenter = computeCentroid(clusters[i].points);
+      if (newCenter != centers[i]) {
+        centers[i] = newCenter;
+        changed = true;
+      }
+    }
+  }
+
+  // Merge überlappende oder berührende Cluster
   return mergeCluster(clusters);
 }
 
@@ -189,7 +226,7 @@ vector<Cluster> heuristik(vector<Point> &points, int k) {
       for (int j = 0; j < n; j++) {
         vector<Point> centers;
         Point largestCenter = points[i];
-        centers.push_back(largestCenter); 
+        centers.push_back(largestCenter);
         double radius = distances[i][j];
 
         // Finde k Zentren
