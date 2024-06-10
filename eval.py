@@ -1,4 +1,3 @@
-from logging import config
 import generator
 import subprocess
 import plot
@@ -34,13 +33,16 @@ def main():
     # Liste der Punkte-Dateien im Verzeichnis
     point_files = [f for f in os.listdir(point_directory) if f.endswith('.csv')]
 
-    # Ausführung der Schmidt und Gonzales Algorithmen
+    # Ausführung der Algorithmen
     schmidt(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory)
     cluster(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory, 'Gonzales')
     cluster(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory, 'KMeansPlusPlus')
     cluster(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory, 'Heuristik')
 
-    # Vergleich der Ergebnisse der beiden Algorithmen
+    # Analyse und Vergleich der Ergebnisse von Schmidt
+    analyze_results_schmidt(config)
+
+    # Vergleich der Ergebnisse der Algorithmen
     compare_algorithms(config)
 
 
@@ -150,9 +152,6 @@ def schmidt(point_files, config, ball_directory, cluster_directory, plot_directo
         for point_file, u, epsilon, duration, radii in results:
             f.write(f"{point_file},{u},{epsilon},{duration},{radii}\n")
 
-    # Analysieren und Vergleichen der Ergebnisse
-    analyze_results_schmidt(results, config)
-
 
 def parse_output_schmidt(output):
     duration = None
@@ -187,9 +186,9 @@ def parse_output(output, radii_pattern):
     return radii
 
 
-def analyze_results_schmidt(results, config):
+def analyze_results_schmidt(config):
     # Ergebnisse in einen DataFrame umwandeln
-    df = pd.DataFrame(results, columns=['Datei', 'u', 'epsilon', 'Dauer (Sekunden)', 'Radii'])
+    df = pd.read_csv(f'Data/{config['dimensions']}/Results/Schmidt/results.csv')
 
     # Boxplot der Radien nach 'u' und 'epsilon'
     plt.figure(figsize=(10, 6))
@@ -313,10 +312,11 @@ def compare_algorithms(config):
 
     paired_results.rename(columns={'Radii': 'Radii_Heuristik'}, inplace=True)
 
-    # Berechnung der besten Algorithmen
+    # Zählt wie oft ein Algorithmus der beste ist oder ob alle gleich sind
     paired_results['Best_Algorithm'] = paired_results.apply(
-        lambda row: min(('Schmidt', row['Radii_Schmidt']), ('Gonzales', row['Radii_Gonzales']), ('KMeans++', row['Radii_KMeans']), ('Heuristik', row['Radii_Heuristik']), key=lambda x: x[1])[0],
-        axis=1
+    lambda row: 'Alle gleich' if len(set([row['Radii_Schmidt'], row['Radii_Gonzales'], row['Radii_KMeans'], row['Radii_Heuristik']])) == 1 else 
+                min(('Schmidt', row['Radii_Schmidt']), ('Gonzales', row['Radii_Gonzales']), ('KMeans++', row['Radii_KMeans']), ('Heuristik', row['Radii_Heuristik']), key=lambda x: x[1])[0],
+    axis=1
     )
 
     # Zählen der Fälle, in denen jeder Algorithmus das beste Ergebnis liefert
@@ -324,13 +324,7 @@ def compare_algorithms(config):
     gonzales_better_count = paired_results[paired_results['Best_Algorithm'] == 'Gonzales'].shape[0]
     kmeans_better_count = paired_results[paired_results['Best_Algorithm'] == 'KMeans++'].shape[0]
     heuristik_better_count = paired_results[paired_results['Best_Algorithm'] == 'Heuristik'].shape[0]
-    
-    # Zählen der Fälle, in denen die Algorithmen das gleiche Ergebnis haben
-    same_result_count = paired_results[
-        (paired_results['Radii_Schmidt'] == paired_results['Radii_Gonzales']) & 
-        (paired_results['Radii_Gonzales'] == paired_results['Radii_KMeans']) &
-        (paired_results['Radii_KMeans'] == paired_results['Radii_Heuristik'])
-    ].shape[0]
+    same_result_count = paired_results[paired_results['Best_Algorithm'] == 'Alle gleich'].shape[0]
 
     total_count = paired_results.shape[0]
 
@@ -386,5 +380,4 @@ def compare_algorithms(config):
 
 
 if __name__ == "__main__":
-    config = generator.handle_arguments()
-    compare_algorithms(config)
+    main()
