@@ -1,13 +1,13 @@
 #include <algorithm>
+#include <omp.h>
 #include <random>
 
 #include "header/Ball.h"
 #include "header/Cluster.h"
 #include "header/Point.h"
+#include "header/k_MSR.h"
+#include "header/welzl.h"
 #include "header/yildirim.h"
-#include <iostream>
-
-#include <random>
 
 using namespace std;
 
@@ -34,11 +34,54 @@ vector<Cluster> assignPointsToCluster(vector<Point> &points, vector<Point> &cent
   return clusters;
 }
 
+bool clustersOverlap(Cluster &c1, Cluster &c2) {
+  Ball b1 = findMinEnclosingBall(c1.points);
+  Ball b2 = findMinEnclosingBall(c2.points);
+
+  double distance = Point::distance(b1.center, b2.center);
+  double radiusSum = b1.radius + b2.radius;
+  return distance <= radiusSum;
+}
+
+vector<Cluster> mergeCluster(vector<Cluster> &clusters) {
+  bool changed;
+
+  do {
+    changed = false;
+    vector<Cluster> mergedClusters;
+    vector<bool> merged(clusters.size(), false);
+
+    for (int i = 0; i < clusters.size(); i++) {
+      if (merged[i]) {
+        continue;
+      }
+      Cluster currentCluster = clusters[i];
+      merged[i] = true;
+
+      for (int j = i + 1; j < clusters.size(); j++) {
+        if (merged[j]) {
+          continue;
+        }
+        if (clustersOverlap(currentCluster, clusters[j])) {
+          currentCluster.merge(clusters[j]);
+          merged[j] = true;
+          changed = true;
+        }
+      }
+      mergedClusters.push_back(currentCluster);
+    }
+
+    clusters = mergedClusters;
+
+  } while (changed);
+
+  return clusters;
+}
+
 vector<Cluster> gonzales(vector<Point> &points, int k) {
   int n = points.size();
-
   vector<Point> centers;
-  centers.push_back(points[0]); // Initialisiere das erste Zentrum als ersten Punkt
+  centers.push_back(points[0]);
 
   for (int i = 1; i < k; i++) {
     int nextCenter = -1;
@@ -58,9 +101,11 @@ vector<Cluster> gonzales(vector<Point> &points, int k) {
     centers.push_back(points[nextCenter]);
   }
 
-  // Erstelle Cluster basierend auf den Zentren
+  // Weise die Punkte den Zentren zu und erstelle Cluster
   vector<Cluster> clusters = assignPointsToCluster(points, centers, k);
-  return clusters;
+
+  // Merge überlappende oder berührende Cluster
+  return mergeCluster(clusters);
 }
 
 vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
@@ -106,45 +151,73 @@ vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
 
   // Erstelle Cluster basierend auf den Zentren
   vector<Cluster> clusters = assignPointsToCluster(points, centers, k);
-  return clusters;
+  return mergeCluster(clusters);
 }
 
-double findLargestDistanceBeforeFirstJump(const vector<Point> &points, int k) {
+vector<Cluster> heuristik(vector<Point> &points, int k) {
   int n = points.size();
-  vector<vector<double>> distances(n, vector<double>(n));
+  vector<Cluster> bestCluster;
+  bestCluster.push_back(Cluster(points));
+  vector<vector<double>> distances(n, vector<double>(n, 0));
 
+#pragma omp parallel for collapse(2)
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
       distances[i][j] = Point::distance(points[i], points[j]);
     }
   }
-  double x = 0;
-  for (int i = 0; i < n; i++) {
-    for (int j = 0; j < n; j++) {
-      x += distances[i][j];
-    }
-  }
 
-  return x / (n * n);
-}
+#pragma omp parallel
+  {
+    vector<Cluster> localBestCluster = bestCluster;
+    double localBestCost = cost(localBestCluster);
 
-Ball heuristik(vector<Point> &points, int k) {
-  double radien = findLargestDistanceBeforeFirstJump(points, k);
-  int bestCount = 0;
-  double bestRadius = 0;
-  Point bestCenter;
-  for (int i = 0; i < points.size(); i++) {
-    int count = 0;
-    for (Point point : points) {
-      if (points[i].distanceTo(point) <= radien) {
-        count++;
+#pragma omp for
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        vector<Point> centers;
+        Point largestCenter = points[i];
+        centers.push_back(largestCenter);
+        double radius = distances[i][j];
+
+        while (centers.size() != k) {
+          int nextCenter = -1;
+          double maxDist = -1.0;
+
+          for (int h = 0; h < n; h++) {
+            double dist = numeric_limits<double>::max();
+            for (const Point &center : centers) {
+              if (center == largestCenter) {
+                dist = min(dist, points[h].distanceTo(center) - radius);
+              } else {
+                dist = min(dist, points[h].distanceTo(center));
+              }
+            }
+            if (dist > maxDist) {
+              maxDist = dist;
+              nextCenter = h;
+            }
+          }
+          centers.push_back(points[nextCenter]);
+        }
+
+        vector<Cluster> cluster = assignPointsToCluster(points, centers, k);
+        double clusterCost = cost(cluster);
+
+        if (clusterCost < localBestCost) {
+          localBestCluster = cluster;
+          localBestCost = clusterCost;
+        }
       }
     }
-    if (count > bestCount) {
-      bestCenter = points[i];
-      bestCount = count;
-      bestRadius = radien;
+
+#pragma omp critical
+    {
+      if (localBestCost < cost(bestCluster)) {
+        bestCluster = localBestCluster;
+      }
     }
   }
-  return Ball(bestCenter, bestRadius);
+
+  return mergeCluster(bestCluster);
 }
