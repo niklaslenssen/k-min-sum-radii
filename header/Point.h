@@ -47,6 +47,10 @@ class Point {
     return true;
   }
 
+  bool operator!=(const Point& other) const {
+    return !(*this == other);
+  }
+
   Point operator+(const Point& other) const {
     if (coordinates.size() != other.coordinates.size()) {
       throw std::invalid_argument("Die Punkte müssen dieselbe Dimension haben!");
