@@ -1,6 +1,5 @@
 import argparse
 import math
-import matplotlib.pyplot as plt
 import random
 import os
 
@@ -195,6 +194,7 @@ def generate_data(config):
 
 
 def main():
+    random.seed(1234)
     config = handle_arguments()
     generate_data(config)
 

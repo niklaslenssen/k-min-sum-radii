@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <omp.h>
 #include <random>
 
@@ -111,7 +110,7 @@ Point computeCentroid(vector<Point> &points) {
 vector<Cluster> gonzales(vector<Point> &points, int k) {
   int n = points.size();
   vector<Point> centers;
-  centers.push_back(points[0]);
+  centers.push_back(points[rand() % points.size()]);
 
   // Finde die restlichen k-1 Zentren
   for (int i = 1; i < k; i++) {
@@ -142,8 +141,7 @@ vector<Cluster> gonzales(vector<Point> &points, int k) {
 vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
   int n = points.size();
   vector<Point> centers;
-  random_device rd;
-  mt19937 gen(rd());
+  mt19937 gen(1234);
   uniform_int_distribution<> dis(0, n - 1);
 
   // Wähle das erste Zentrum zufällig aus

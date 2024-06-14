@@ -101,11 +101,8 @@ vector<vector<int>> getU(int k, double epsilon, int numVectors) {
 
   vector<vector<int>> result(numVectors);
 
-  // Erzeugt einen Zufallszahlengenerator.
-  random_device rd;
-
   // Initialisiert einen Mersenne Twister-Generator mit der Seed von 'rd'.
-  mt19937 gen(rd());
+  mt19937 gen(1234);
 
   // Definiert eine Gleichverteilung für Ganzzahlen zwischen 0 und k-1.
   uniform_int_distribution<> distrib(0, k - 1);

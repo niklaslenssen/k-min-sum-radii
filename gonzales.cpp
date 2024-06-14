@@ -5,6 +5,7 @@
 using namespace std;
 
 double gonzalesrmax(const vector<Point> &points, int k) {
+  srand(1234);
   vector<Point> centers;
 
   // Wähle den ersten Punkt zufällig aus den Eingabepunkten
