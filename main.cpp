@@ -7,12 +7,11 @@
 #include <sstream>
 #include <vector>
 
-#include "header/Cluster.h"
-#include "header/Heuristic.h"
-#include "header/yildirim.h"
-#include "header/gonzales.h"
-#include "header/k_MSR.h"
-#include "header/welzl.h"
+#include "kMSR/header/cluster.h"
+#include "kMSR/header/heuristic.h"
+#include "kMSR/header/k_MSR.h"
+#include "kMSR/header/welzl.h"
+#include "kMSR/header/yildirim.h"
 
 using namespace std;
 
@@ -26,7 +25,9 @@ void saveBallsInCSV(const vector<Ball> &balls, const string &filePath) {
   }
 
   for (Ball b : balls) {
-    ballsfile << b.center.coordinates[0] << "," << b.center.coordinates[1] << "," << b.radius << "\n";
+    ballsfile << b.getCenter().getCoordinates()[0] << ","
+              << b.getCenter().getCoordinates()[1] << "," << b.getRadius()
+              << "\n";
   }
 
   ballsfile.close();
@@ -44,9 +45,10 @@ void saveClusterInCSV(const vector<Cluster> &cluster, const string &filePath) {
 
   for (int i = 0; i < cluster.size(); i++) {
     Cluster c = cluster[i];
-    for (int j = 0; j < c.points.size(); j++) {
-      Point p = c.points[j];
-      clusterfile << p.coordinates[0] << "," << p.coordinates[1] << "," << i << endl;
+    for (int j = 0; j < c.getPoints().size(); j++) {
+      Point p = c.getPoints()[j];
+      clusterfile << p.getCoordinates()[0] << "," << p.getCoordinates()[1]
+                  << "," << i << endl;
     }
   }
 
@@ -88,8 +90,8 @@ vector<Point> readPointsFromCSV(const string &filePath) {
 vector<Ball> getBallsFromCluster(vector<Cluster> &cluster) {
   vector<Ball> balls;
   for (int i = 0; i < cluster.size(); i++) {
-    Ball b = findMinEnclosingBall(cluster[i].points);
-    if (b.radius != 0) {
+    Ball b = findMinEnclosingBall(cluster[i].getPoints());
+    if (b.getRadius() != 0) {
       balls.push_back(b);
     }
   }
@@ -100,26 +102,29 @@ vector<Ball> getBallsFromCluster(vector<Cluster> &cluster) {
 double sumOfRadii(vector<Ball> &balls) {
   double radii = 0;
   for (Ball b : balls) {
-    radii += b.radius;
+    radii += b.getRadius();
   }
   return radii;
 }
 
-void analyseSchmidt(vector<Point> &points, int k, double epsilon, int numVectors, string &clusterFilePath, string &ballFilePath) {
-  double rmax = gonzalesrmax(points, k);
+void analyseSchmidt(vector<Point> &points, int k, double epsilon,
+                    int numVectors, string &clusterFilePath,
+                    string &ballFilePath) {
   auto start = std::chrono::steady_clock::now();
-  vector<Cluster> cluster = clustering(points, k, epsilon, rmax, numVectors);
+  vector<Cluster> cluster = clustering(points, k, epsilon, numVectors);
   auto end = std::chrono::steady_clock::now();
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
   auto diff = end - start;
-  cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count() << " Sekunden" << endl;
+  cout << "Dauer des Durchlaufs: " << chrono::duration<double>(diff).count()
+       << " Sekunden" << endl;
   cout << "Schmidt:                   " << radii << endl;
   saveClusterInCSV(cluster, clusterFilePath);
   saveBallsInCSV(balls, ballFilePath);
 }
 
-void analyseGonzales(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
+void analyseGonzales(vector<Point> &points, int k, string &clusterFilePath,
+                     string &ballFilePath) {
   vector<Cluster> cluster = gonzales(points, k);
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
@@ -128,7 +133,8 @@ void analyseGonzales(vector<Point> &points, int k, string &clusterFilePath, stri
   saveBallsInCSV(balls, ballFilePath);
 }
 
-void analyseKMeansPlusPlus(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
+void analyseKMeansPlusPlus(vector<Point> &points, int k,
+                           string &clusterFilePath, string &ballFilePath) {
   vector<Cluster> cluster = kMeansPlusPlus(points, k);
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
@@ -137,7 +143,8 @@ void analyseKMeansPlusPlus(vector<Point> &points, int k, string &clusterFilePath
   saveBallsInCSV(balls, ballFilePath);
 }
 
-void analyseHeuristik(vector<Point> &points, int k, string &clusterFilePath, string &ballFilePath) {
+void analyseHeuristik(vector<Point> &points, int k, string &clusterFilePath,
+                      string &ballFilePath) {
   vector<Cluster> cluster = heuristik(points, k);
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
@@ -156,7 +163,8 @@ int main(int argc, char const *argv[]) {
     string clusterFilePath = argv[7];
 
     vector<Point> points = readPointsFromCSV(pointFilePath);
-    analyseSchmidt(points, k, epsilon, numVectors, clusterFilePath, ballFilePath);
+    analyseSchmidt(points, k, epsilon, numVectors, clusterFilePath,
+                   ballFilePath);
   } else if (string(argv[1]) == "Gonzales") {
     int k = stod(argv[2]);
     string pointFilePath = argv[3];

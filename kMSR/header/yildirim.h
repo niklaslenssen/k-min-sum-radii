@@ -1,11 +1,11 @@
 // yildirim.h
 
-#include "Ball.h"
-#include "Point.h"
-
 #ifndef YILDIRIM_H
 #define YILDIRIM_H
 
+#include "ball.h"
+#include "point.h"
+
 Ball findMEB(const std::vector<Point> &points, double epsilon);
 
-#endif
+#endif  // YILDIRIM_H

@@ -1,17 +1,20 @@
 #include <omp.h>
+
 #include <random>
 
-#include "header/Ball.h"
-#include "header/Cluster.h"
-#include "header/Point.h"
+#include "header/ball.h"
+#include "header/cluster.h"
 #include "header/k_MSR.h"
+#include "header/point.h"
 #include "header/welzl.h"
 #include "header/yildirim.h"
 
 using namespace std;
 
-// Weist jedem Punkt im Vektor 'points' das nächstgelegene Zentrum im Vektor 'centers' zu
-vector<Cluster> assignPointsToCluster(vector<Point> &points, vector<Point> &centers, int k) {
+// Weist jedem Punkt im Vektor 'points' das nächstgelegene Zentrum im Vektor
+// 'centers' zu
+vector<Cluster> assignPointsToCluster(const vector<Point> &points,
+                                      const vector<Point> &centers, int k) {
   int n = points.size();
   vector<Cluster> clusters(k);
 
@@ -35,18 +38,19 @@ vector<Cluster> assignPointsToCluster(vector<Point> &points, vector<Point> &cent
 }
 
 // Überprüft, ob zwei Cluster sich überlappen oder berühren
-bool clustersOverlap(Cluster &c1, Cluster &c2) {
+bool clustersOverlap(const Cluster &c1, const Cluster &c2) {
   // Berechne die MEBs
-  Ball b1 = findMinEnclosingBall(c1.points);
-  Ball b2 = findMinEnclosingBall(c2.points);
+  Ball b1 = findMinEnclosingBall(c1.getPoints());
+  Ball b2 = findMinEnclosingBall(c2.getPoints());
 
   // Berechne die euklidische Distanz zwischen den Zentren der beiden Bälle
-  double distance = Point::distance(b1.center, b2.center);
+  double distance = Point::distance(b1.getCenter(), b2.getCenter());
 
   // Berechne die Summe der Radien der beiden Bälle
-  double radiusSum = b1.radius + b2.radius;
+  double radiusSum = b1.getRadius() + b2.getRadius();
 
-  // Überprüfe, ob die Distanz zwischen den Zentren kleiner oder gleich der Summe der Radien ist
+  // Überprüfe, ob die Distanz zwischen den Zentren kleiner oder gleich der
+  // Summe der Radien ist
   return distance <= radiusSum;
 }
 
@@ -62,25 +66,26 @@ vector<Cluster> mergeCluster(vector<Cluster> &clusters) {
 
     for (int i = 0; i < clusters.size(); i++) {
       if (merged[i]) {
-        continue; // Überspringe bereits gemergte Cluster
+        continue;  // Überspringe bereits gemergte Cluster
       }
       Cluster currentCluster = clusters[i];
       merged[i] = true;
 
       for (int j = i + 1; j < clusters.size(); j++) {
         if (merged[j]) {
-          continue; // Überspringe bereits gemergte Cluster
+          continue;  // Überspringe bereits gemergte Cluster
         }
         if (clustersOverlap(currentCluster, clusters[j])) {
           currentCluster.merge(clusters[j]);
           merged[j] = true;
-          changed = true; // Es gab eine Änderung
+          changed = true;  // Es gab eine Änderung
         }
       }
-      mergedClusters.push_back(currentCluster); // Füge das gemergte Cluster zu den gemergten Clustern hinzu
+      mergedClusters.push_back(currentCluster);  // Füge das gemergte Cluster zu
+                                                 // den gemergten Clustern hinzu
     }
 
-    clusters = mergedClusters; // Aktualisiere die Cluster-Liste
+    clusters = mergedClusters;  // Aktualisiere die Cluster-Liste
 
   } while (changed);
 
@@ -88,14 +93,14 @@ vector<Cluster> mergeCluster(vector<Cluster> &clusters) {
 }
 
 // Berechnet den Schwerpunkt (Centroid) des Clusters
-Point computeCentroid(vector<Point> &points) {
-  int dimension = points[0].coordinates.size();
+Point computeCentroid(const vector<Point> &points) {
+  int dimension = points[0].getCoordinates().size();
   vector<double> centroidCoords(dimension, 0.0);
 
   // Summe der Koordinaten aller Punkte im Cluster
   for (const Point &p : points) {
     for (int i = 0; i < dimension; i++) {
-      centroidCoords[i] += p.coordinates[i];
+      centroidCoords[i] += p.getCoordinates()[i];
     }
   }
 
@@ -117,7 +122,8 @@ vector<Cluster> gonzales(vector<Point> &points, int k) {
     int nextCenter = -1;
     double maxDist = -1.0;
 
-    // Finde den Punkt, der am weitesten von seinem nächsten Zentrum entfernt ist
+    // Finde den Punkt, der am weitesten von seinem nächsten Zentrum entfernt
+    // ist
     for (int j = 0; j < n; j++) {
       double dist = numeric_limits<double>::max();
       for (Point center : centers) {
@@ -157,7 +163,8 @@ vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
       }
     }
 
-    // Berechne die Wahrscheinlichkeitsverteilung für die Auswahl des nächsten Zentrums
+    // Berechne die Wahrscheinlichkeitsverteilung für die Auswahl des nächsten
+    // Zentrums
     vector<double> distSquared(n);
     double sumDist = 0.0;
     for (int j = 0; j < n; j++) {
@@ -188,7 +195,7 @@ vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
 
     // Aktualisiere die Zentren basierend auf den Clustern
     for (int i = 0; i < k; i++) {
-      Point newCenter = computeCentroid(clusters[i].points);
+      Point newCenter = computeCentroid(clusters[i].getPoints());
       if (newCenter != centers[i]) {
         centers[i] = newCenter;
         changed = true;
@@ -203,7 +210,8 @@ vector<Cluster> kMeansPlusPlus(vector<Point> &points, int k) {
 vector<Cluster> heuristik(vector<Point> &points, int k) {
   int n = points.size();
   vector<Cluster> bestCluster;
-  bestCluster.push_back(Cluster(points)); // Initialisiere mit allen Punkten in einem Cluster
+  bestCluster.push_back(
+      Cluster(points));  // Initialisiere mit allen Punkten in einem Cluster
   vector<vector<double>> distances(n, vector<double>(n, 0));
 
 // Berechnung der Abstände zwischen allen Punkten
@@ -216,8 +224,10 @@ vector<Cluster> heuristik(vector<Point> &points, int k) {
 
 #pragma omp parallel
   {
-    vector<Cluster> localBestCluster = bestCluster; // Lokale Variable für die besten Cluster in jedem Thread
-    double localBestCost = cost(localBestCluster);  // Kosten der lokalen besten Cluster
+    vector<Cluster> localBestCluster =
+        bestCluster;  // Lokale Variable für die besten Cluster in jedem Thread
+    double localBestCost =
+        cost(localBestCluster);  // Kosten der lokalen besten Cluster
 
 #pragma omp for
     for (int i = 0; i < n; i++) {
@@ -251,9 +261,11 @@ vector<Cluster> heuristik(vector<Point> &points, int k) {
 
         // Weise die Punkte den nächstgelegenen Zentren zu
         vector<Cluster> cluster = assignPointsToCluster(points, centers, k);
-        double clusterCost = cost(cluster); // Berechne die Kosten des aktuellen Clusters
+        double clusterCost =
+            cost(cluster);  // Berechne die Kosten des aktuellen Clusters
 
-        // Aktualisiere lokale beste Cluster, falls das aktuelle Cluster besser ist
+        // Aktualisiere lokale beste Cluster, falls das aktuelle Cluster besser
+        // ist
         if (clusterCost < localBestCost) {
           localBestCluster = cluster;
           localBestCost = clusterCost;

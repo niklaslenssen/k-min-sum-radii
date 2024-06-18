@@ -1,11 +1,11 @@
 // k_MSR.h
 
-#include "Ball.h"
-#include "Cluster.h"
-#include "Point.h"
-
 #ifndef K_MSR_H
 #define K_MSR_H
+
+#include "ball.h"
+#include "cluster.h"
+#include "point.h"
 
 bool containsPoint(const Point& p, const std::vector<Ball>& balls);
 
@@ -25,6 +25,6 @@ bool containsAllPoints(const std::vector<Point>& points,
 double cost(std::vector<Cluster>& cluster);
 
 std::vector<Cluster> clustering(const std::vector<Point>& points, int k,
-                                double epsilon, double rmax, int numVectors);
+                                double epsilon, int numVectors);
 
-#endif
+#endif  // K_MSR_H

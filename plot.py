@@ -8,14 +8,14 @@ def plot_cluster(cluster_file, ball_file, plot_file):
 
     plt.clf()
 
-    points = pd.read_csv(cluster_file, header=None, names=['x', 'y', 'Center'])
-    balls = pd.read_csv(ball_file, header=None, names=['x', 'y', 'radius'])
+    points = pd.read_csv(cluster_file, header=0, names=['x', 'y', 'Center'])
+    balls = pd.read_csv(ball_file, header=0, names=['x', 'y', 'Radius'])
 
     plt.scatter(points['x'], points['y'], c=points['Center'])
     ax = plt.gca()
 
     for _, ball in balls.iterrows():
-        kreis = Circle((ball['x'], ball['y']), ball['radius'], fill=False, edgecolor='black')
+        kreis = Circle((ball['x'], ball['y']), ball['Radius'], fill=False, edgecolor='black')
         ax.add_patch(kreis)
         ax.plot(ball['x'], ball['y'], '+', color='black')
 

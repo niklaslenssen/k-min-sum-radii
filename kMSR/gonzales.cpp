@@ -1,6 +1,8 @@
 #include "header/gonzales.h"
-#include "header/Point.h"
+
 #include <algorithm>
+
+#include "header/point.h"
 
 using namespace std;
 
@@ -21,7 +23,8 @@ double gonzalesrmax(const vector<Point> &points, int k) {
   // Iteriere, um die restlichen k - 1 Zentren zu finden
   while (centers.size() < k) {
     // Wähle das nächste Zentrum basierend auf dem größten Abstand
-    int nextCenterIndex = distance(distances.begin(), max_element(distances.begin(), distances.end()));
+    int nextCenterIndex = distance(
+        distances.begin(), max_element(distances.begin(), distances.end()));
     Point nextCenter = points[nextCenterIndex];
     centers.push_back(nextCenter);
 
