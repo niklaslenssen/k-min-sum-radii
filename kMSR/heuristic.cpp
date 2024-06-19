@@ -113,9 +113,10 @@ Point computeCentroid(const vector<Point> &points) {
 }
 
 vector<Cluster> gonzales(vector<Point> &points, int k) {
+  srand(1234);
   int n = points.size();
   vector<Point> centers;
-  centers.push_back(points[rand() % points.size()]);
+  centers.push_back(points[rand() % n]);
 
   // Finde die restlichen k-1 Zentren
   for (int i = 1; i < k; i++) {
