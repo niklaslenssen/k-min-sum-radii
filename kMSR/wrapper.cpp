@@ -48,7 +48,7 @@ ClusterData* cluster_to_array(vector<Cluster> clusters, int* num_clusters) {
 
 extern "C" {
 
-ClusterData* clustering_wrapper(double* point_array, int num_points,
+ClusterData* schmidt_wrapper(double* point_array, int num_points,
                                 int dimension, int k, double epsilon,
                                 int numVectors, int* num_clusters) {
   vector<Point> points = array_to_vector(point_array, num_points, dimension);
