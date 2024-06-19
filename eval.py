@@ -197,6 +197,8 @@ def cluster(point_files, config, ball_directory, cluster_directory, plot_directo
 
         cluster = extract_clusters(cluster_ptr, num_clusters_value)
 
+        lib.free_cluster_data(cluster_ptr, num_clusters)
+
         save_clusters_to_csv(cluster, cluster_path)
 
         radii = save_mebs_to_csv(cluster, ball_path)
@@ -220,24 +222,24 @@ def cluster(point_files, config, ball_directory, cluster_directory, plot_directo
 def schmidt(point_files, config, ball_directory, cluster_directory, plot_directory, point_directory):
     # Werte für epsilon und u definieren
     epsilon_values = [0.5]
-    u_values = [1, 10, 100, 1000]
+    u_values = [1, 10, 100, 1000, 2000, 3000]
     # Anzahl der Cluster
     k = config['k']
+    dimension = config['dimensions']
 
     # Verzeichnisse erstellen, falls sie nicht existieren
     os.makedirs(os.path.join(ball_directory, "Schmidt"), exist_ok=True)
     os.makedirs(os.path.join(cluster_directory, "Schmidt"), exist_ok=True)
     os.makedirs(os.path.join(plot_directory, "Schmidt"), exist_ok=True)
     os.makedirs(os.path.join(
-        f'Data/{config['dimensions']}/Results', "Schmidt"), exist_ok=True)
+        f'Data/{dimension}/Results', "Schmidt"), exist_ok=True)
 
     # Regex-Muster zum Extrahieren der Nummer aus dem Dateinamen
     pattern = r"points_(\d+)\.csv"
 
     results = []
-    count = 0
+    count = 1
     for point_file in point_files:
-        print("Schmidt: " + str(count))
         # Nummer aus dem Dateinamen extrahieren
         match = re.search(pattern, point_file)
         if match:
@@ -265,8 +267,8 @@ def schmidt(point_files, config, ball_directory, cluster_directory, plot_directo
                 cluster_ptr = lib.clustering_wrapper(
                     c_array,
                     numPoints,
-                    config['dimensions'],
-                    config['k'],
+                    dimension,
+                    k,
                     epsilon,
                     u,
                     ctypes.byref(num_clusters)
@@ -280,6 +282,8 @@ def schmidt(point_files, config, ball_directory, cluster_directory, plot_directo
 
                 cluster = extract_clusters(cluster_ptr, num_clusters_value)
 
+                lib.free_cluster_data(cluster_ptr, num_clusters)
+
                 save_clusters_to_csv(cluster, cluster_path)
 
                 radii = save_mebs_to_csv(cluster, ball_path)
@@ -289,13 +293,15 @@ def schmidt(point_files, config, ball_directory, cluster_directory, plot_directo
 
                 # Cluster plotten und speichern
                 plot.plot_cluster(cluster_path, ball_path, plot_path)
+
+        print(count)
         count += 1
 
     # Ergebnisse nach Dateiname, 'u' und 'epsilon' sortieren
     results.sort(key=lambda x: (x[0], x[1], -x[2]))
 
     # Ergebnisse in eine CSV-Datei schreiben
-    with open(f'Data/{config['dimensions']}/Results/Schmidt/results.csv', 'w') as f:
+    with open(f'Data/{dimension}/Results/Schmidt/results.csv', 'w') as f:
         f.write('Datei,u,epsilon,Dauer (Sekunden),Radii\n')
         for point_file, u, epsilon, duration, radii in results:
             f.write(f"{point_file},{u},{epsilon},{duration},{radii}\n")
@@ -350,6 +356,19 @@ def analyze_results_schmidt(config):
         plt.savefig(
             f'Data/{config['dimensions']}/Results/Schmidt/radii_boxplot_epsilon{epsilon_val}.png')
         plt.close()
+
+    # Boxplot der Dauer der Durchläufe nach 'u'
+    plt.figure(figsize=(10, 6))
+    df.boxplot(column='Dauer (Sekunden)', by='u')
+    plt.title('Verteilung der Dauer nach u')
+    plt.suptitle('')
+    plt.xlabel('u')
+    plt.ylabel('Dauer (Sekunden)')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    plt.savefig(f'Data/{config["dimensions"]
+                        }/Results/Schmidt/duration_boxplot.png')
+    plt.close()
 
     # Berechnung der Verbesserung des Radius
     min_u = min(df['u'])
@@ -412,137 +431,108 @@ def compare_algorithms(config):
     heuristik_results = pd.read_csv(
         f'Data/{config["dimensions"]}/Results/Heuristik/results.csv')
 
-    # Finden der besten Kombination von u und epsilon für Schmidt
-    best_combination = schmidt_results.groupby(
-        ['u', 'epsilon'])['Radii'].mean().idxmin()
-    best_u, best_epsilon = best_combination
-    best_schmidt_results = schmidt_results[(schmidt_results['u'] == best_u) & (
-        schmidt_results['epsilon'] == best_epsilon)]
+    all_comparison_results = []
 
-    # Berechne den durchschnittlichen Radius für jede Methode
-    schmidt_avg_radius = best_schmidt_results['Radii'].mean()
-    gonzales_avg_radius = gonzales_results['Radii'].mean()
-    kmeans_avg_radius = kmeans_results['Radii'].mean()
-    heuristik_avg_radius = heuristik_results['Radii'].mean()
+    for u_val in schmidt_results['u'].unique():
+        # Finden der besten Kombination von epsilon für das aktuelle u
+        best_combination = schmidt_results[schmidt_results['u'] == u_val].groupby(
+            ['u', 'epsilon'])['Radii'].mean().idxmin()
+        best_u, best_epsilon = best_combination
+        best_schmidt_results = schmidt_results[(schmidt_results['u'] == best_u) & (
+            schmidt_results['epsilon'] == best_epsilon)]
 
-    print(f"Durchschnittlicher Radius für Schmidt (beste Kombination u={
-          best_u}, epsilon={best_epsilon}): {schmidt_avg_radius:.4f}")
-    print(f"Durchschnittlicher Radius für Gonzales: {gonzales_avg_radius:.4f}")
-    print(f"Durchschnittlicher Radius für KMeans++: {kmeans_avg_radius:.4f}")
-    print(f"Durchschnittlicher Radius für die Heuristik: {
-          heuristik_avg_radius:.4f}")
+        # Paarweise Vergleiche der Radien
+        paired_results = pd.merge(best_schmidt_results[['Datei', 'Radii']], gonzales_results[[
+                                  'Datei', 'Radii']], on='Datei', suffixes=('_Schmidt', '_Gonzales'))
+        paired_results = pd.merge(
+            paired_results, kmeans_results[['Datei', 'Radii']], on='Datei')
+        paired_results.rename(columns={'Radii': 'Radii_KMeans'}, inplace=True)
+        paired_results = pd.merge(
+            paired_results, heuristik_results[['Datei', 'Radii']], on='Datei')
+        paired_results.rename(
+            columns={'Radii': 'Radii_Heuristik'}, inplace=True)
 
-    # Paarweise Vergleiche der Radien
-    paired_results = pd.merge(
-        best_schmidt_results[['Datei', 'Radii']],
-        gonzales_results[['Datei', 'Radii']],
-        on='Datei',
-        suffixes=('_Schmidt', '_Gonzales')
-    )
+        # Zählen, wie oft Schmidt besser als alle anderen ist
+        paired_results['Schmidt_better_than_all'] = paired_results.apply(
+            lambda row: row['Radii_Schmidt'] < row[[
+                'Radii_Gonzales', 'Radii_KMeans', 'Radii_Heuristik']].min(),
+            axis=1
+        )
 
-    paired_results = pd.merge(
-        paired_results,
-        kmeans_results[['Datei', 'Radii']],
-        on='Datei'
-    )
+        # Zählen, wie oft Schmidt schlechter als alle anderen ist
+        paired_results['Schmidt_worse_than_all'] = paired_results.apply(
+            lambda row: row['Radii_Schmidt'] > row[[
+                'Radii_Gonzales', 'Radii_KMeans', 'Radii_Heuristik']].max(),
+            axis=1
+        )
 
-    paired_results.rename(columns={'Radii': 'Radii_KMeans'}, inplace=True)
+        schmidt_better_count = paired_results['Schmidt_better_than_all'].sum()
+        schmidt_worse_count = paired_results['Schmidt_worse_than_all'].sum()
 
-    paired_results = pd.merge(
-        paired_results,
-        heuristik_results[['Datei', 'Radii']],
-        on='Datei'
-    )
+        # Paarweise Vergleiche
+        schmidt_vs_gonzales_better = (
+            paired_results['Radii_Schmidt'] < paired_results['Radii_Gonzales']).sum()
+        schmidt_vs_gonzales_worse = (
+            paired_results['Radii_Schmidt'] > paired_results['Radii_Gonzales']).sum()
 
-    paired_results.rename(columns={'Radii': 'Radii_Heuristik'}, inplace=True)
+        schmidt_vs_kmeans_better = (
+            paired_results['Radii_Schmidt'] < paired_results['Radii_KMeans']).sum()
+        schmidt_vs_kmeans_worse = (
+            paired_results['Radii_Schmidt'] > paired_results['Radii_KMeans']).sum()
 
-    # Zählt wie oft ein Algorithmus der beste ist oder ob alle gleich sind
-    paired_results['Best_Algorithm'] = paired_results.apply(
-        lambda row: 'Alle gleich' if len(set([row['Radii_Schmidt'], row['Radii_Gonzales'], row['Radii_KMeans'], row['Radii_Heuristik']])) == 1 else
-        min(('Schmidt', row['Radii_Schmidt']), ('Gonzales', row['Radii_Gonzales']), (
-            'KMeans++', row['Radii_KMeans']), ('Heuristik', row['Radii_Heuristik']), key=lambda x: x[1])[0],
-        axis=1
-    )
+        schmidt_vs_heuristik_better = (
+            paired_results['Radii_Schmidt'] < paired_results['Radii_Heuristik']).sum()
+        schmidt_vs_heuristik_worse = (
+            paired_results['Radii_Schmidt'] > paired_results['Radii_Heuristik']).sum()
 
-    # Zählen der Fälle, in denen jeder Algorithmus das beste Ergebnis liefert
-    schmidt_better_count = paired_results[paired_results['Best_Algorithm']
-                                          == 'Schmidt'].shape[0]
-    gonzales_better_count = paired_results[paired_results['Best_Algorithm']
-                                           == 'Gonzales'].shape[0]
-    kmeans_better_count = paired_results[paired_results['Best_Algorithm']
-                                         == 'KMeans++'].shape[0]
-    heuristik_better_count = paired_results[paired_results['Best_Algorithm']
-                                            == 'Heuristik'].shape[0]
-    same_result_count = paired_results[paired_results['Best_Algorithm']
-                                       == 'Alle gleich'].shape[0]
+        total_count = paired_results.shape[0]
 
-    total_count = paired_results.shape[0]
+        schmidt_better_percentage = (schmidt_better_count / total_count) * 100
+        schmidt_worse_percentage = (schmidt_worse_count / total_count) * 100
+        schmidt_vs_gonzales_better_percentage = (
+            schmidt_vs_gonzales_better / total_count) * 100
+        schmidt_vs_gonzales_worse_percentage = (
+            schmidt_vs_gonzales_worse / total_count) * 100
 
-    schmidt_better_percentage = (schmidt_better_count / total_count) * 100
-    gonzales_better_percentage = (gonzales_better_count / total_count) * 100
-    kmeans_better_percentage = (kmeans_better_count / total_count) * 100
-    heuristik_better_percentage = (heuristik_better_count / total_count) * 100
-    same_result_percentage = (same_result_count / total_count) * 100
+        schmidt_vs_kmeans_better_percentage = (
+            schmidt_vs_kmeans_better / total_count) * 100
+        schmidt_vs_kmeans_worse_percentage = (
+            schmidt_vs_kmeans_worse / total_count) * 100
 
-    print(f"Schmidt liefert bessere Ergebnisse in {
-          schmidt_better_percentage:.2f}% der Fälle.")
-    print(f"Gonzales liefert bessere Ergebnisse in {
-          gonzales_better_percentage:.2f}% der Fälle.")
-    print(
-        f"KMeans++ liefert bessere Ergebnisse in {kmeans_better_percentage:.2f}% der Fälle.")
-    print(f"Die Heuristik liefert bessere Ergebnisse in {
-          heuristik_better_percentage:.2f}% der Fälle.")
-    print(f"Alle Algorithmen liefern das gleiche Ergebnis in {
-          same_result_percentage:.2f}% der Fälle.")
+        schmidt_vs_heuristik_better_percentage = (
+            schmidt_vs_heuristik_better / total_count) * 100
+        schmidt_vs_heuristik_worse_percentage = (
+            schmidt_vs_heuristik_worse / total_count) * 100
+
+        # Ergebnisse sammeln
+        all_comparison_results.append({
+            'u': u_val,
+            'Schmidt vs Alle Besser (%)': schmidt_better_percentage,
+            'Schmidt vs Alle Schlechter (%)': schmidt_worse_percentage,
+            'Schmidt vs Gonzales Besser (%)': schmidt_vs_gonzales_better_percentage,
+            'Schmidt vs Gonzales Schlechter (%)': schmidt_vs_gonzales_worse_percentage,
+            'Schmidt vs KMeans++ Besser (%)': schmidt_vs_kmeans_better_percentage,
+            'Schmidt vs KMeans++ Schlechter (%)': schmidt_vs_kmeans_worse_percentage,
+            'Schmidt vs Heuristik Besser (%)': schmidt_vs_heuristik_better_percentage,
+            'Schmidt vs Heuristik Schlechter (%)': schmidt_vs_heuristik_worse_percentage
+        })
 
     # Ergebnisse in ein DataFrame packen für den Vergleich
-    comparison_df = pd.DataFrame({
-        'Methode': ['Schmidt', 'Gonzales', 'KMeans++', 'Heuristik', 'Alle gleich'],
-        'Durchschnittlicher Radius': [schmidt_avg_radius, gonzales_avg_radius, kmeans_avg_radius, heuristik_avg_radius, None],
-        'Anzahl besserer Ergebnisse': [schmidt_better_count, gonzales_better_count, kmeans_better_count, heuristik_better_count, same_result_count],
-        'Besser in % der Fälle': [schmidt_better_percentage, gonzales_better_percentage, kmeans_better_percentage, heuristik_better_percentage, same_result_percentage]
-    })
+    comparison_df = pd.DataFrame(all_comparison_results)
 
     # Ergebnisse als Tabelle speichern
     comparison_df.to_csv(
-        f'Data/{config["dimensions"]}/Results/comparison.csv', index=False)
-
-    # Dateien, bei denen jeder Algorithmus am besten ist, speichern
-    schmidt_better_files = paired_results[paired_results['Best_Algorithm'] == 'Schmidt'][[
-        'Datei']].sort_values(by='Datei')
-    gonzales_better_files = paired_results[paired_results['Best_Algorithm'] == 'Gonzales'][[
-        'Datei']].sort_values(by='Datei')
-    kmeans_better_files = paired_results[paired_results['Best_Algorithm']
-                                         == 'KMeans++'][['Datei']].sort_values(by='Datei')
-    heuristik_better_files = paired_results[paired_results['Best_Algorithm'] == 'Heuristik'][[
-        'Datei']].sort_values(by='Datei')
-
-    schmidt_better_files.to_csv(
-        f'Data/{config["dimensions"]}/Results/Schmidt/better_files.csv', index=False)
-    gonzales_better_files.to_csv(
-        f'Data/{config["dimensions"]}/Results/Gonzales/better_files.csv', index=False)
-    kmeans_better_files.to_csv(
-        f'Data/{config["dimensions"]}/Results/KMeansPlusPlus/better_files.csv', index=False)
-    heuristik_better_files.to_csv(
-        f'Data/{config["dimensions"]}/Results/Heuristik/better_files.csv', index=False)
+        f'Data/{config["dimensions"]}/Results/comparison_all_us.csv', index=False)
 
     # Markdown-Datei erstellen
-    with open(f'Data/{config["dimensions"]}/Results/comparison.md', 'w') as md_file:
-        md_file.write("# Vergleich der Clustering-Algorithmen\n")
-        md_file.write("\n")
-        md_file.write("## Durchschnittlicher Radius\n")
-        md_file.write("| Methode   | Durchschnittlicher Radius |\n")
-        md_file.write("|-----------|---------------------------|\n")
-        for index, row in comparison_df.iterrows():
-            md_file.write(f"| {row['Methode']} | {
-                          row['Durchschnittlicher Radius']:.4f} |\n")
-        md_file.write("\n")
-        md_file.write("## Besser in % der Fälle\n")
-        md_file.write("| Methode   | Besser in % der Fälle |\n")
-        md_file.write("|-----------|-----------------------|\n")
-        for index, row in comparison_df.iterrows():
-            md_file.write(f"| {row['Methode']} | {
-                          row['Besser in % der Fälle']:.2f}% |\n")
+    with open(f'Data/{config["dimensions"]}/Results/comparison_all_us.md', 'w') as md_file:
+        md_file.write(
+            "# Paarweiser Vergleich der Clustering-Algorithmen für alle u-Werte\n\n")
+        md_file.write("| u  | Schmidt vs Alle Besser (%) | Schmidt vs Alle Schlechter (%) | Schmidt vs Gonzales Besser (%) | Schmidt vs Gonzales Schlechter (%) | Schmidt vs KMeans++ Besser (%) | Schmidt vs KMeans++ Schlechter (%) | Schmidt vs Heuristik Besser (%) | Schmidt vs Heuristik Schlechter (%) |\n")
+        md_file.write("|----|----------------------------|--------------------------------|--------------------------------|------------------------------------|--------------------------------|------------------------------------|---------------------------------|-------------------------------------|\n")
+        for _, row in comparison_df.iterrows():
+            md_file.write(f"| {int(row['u'])} | {row['Schmidt vs Alle Besser (%)']:.2f} | {row['Schmidt vs Alle Schlechter (%)']:.2f} | {row['Schmidt vs Gonzales Besser (%)']:.2f} | {row['Schmidt vs Gonzales Schlechter (%)']:.2f} | {
+                          row['Schmidt vs KMeans++ Besser (%)']:.2f} | {row['Schmidt vs KMeans++ Schlechter (%)']:.2f} | {row['Schmidt vs Heuristik Besser (%)']:.2f} | {row['Schmidt vs Heuristik Schlechter (%)']:.2f} |\n")
 
 
 def main():
@@ -582,4 +572,5 @@ def main():
 
 
 if __name__ == "__main__":
+    config = generator.handle_arguments()
     main()
