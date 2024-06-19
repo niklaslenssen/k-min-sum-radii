@@ -186,6 +186,7 @@ def handle_arguments():
 
 # Hauptfunktion zum Generieren der Daten
 def generate_data(config):
+    random.seed(1234)
     for i in range(config["number_files"]):
         # Generieren der Cluster
         centers, points = generate_clusters(config)
@@ -194,7 +195,6 @@ def generate_data(config):
 
 
 def main():
-    random.seed(1234)
     config = handle_arguments()
     generate_data(config)
 
