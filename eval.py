@@ -418,7 +418,7 @@ def analyze_results_schmidt(config):
     improvement_df.to_csv(
         f'Data/{config['dimensions']}/Results/Schmidt/radius_improvement.csv', index=False)
 
-    # Beste Kombination von u und epsilon basierend auf dem kleinsten Radius
+    # Beste Kombination von u und epsilon basierend auf dem kleinsten Durchschnitt der Radien
     best_u, best_epsilon = df.groupby(['u', 'epsilon'])[
         'Radii'].mean().idxmin()
     best_mean_radius = df[(df['u'] == best_u) & (
@@ -451,9 +451,13 @@ def compare_algorithms(config):
     heuristik_results = pd.read_csv(
         f'Data/{config["dimensions"]}/Results/Heuristik/results.csv')
 
+    # Beste Kombination von u und epsilon basierend auf dem kleinsten Durchschnitt der Radien
+    best_u, best_epsilon = schmidt_results.groupby(['u', 'epsilon'])[
+        'Radii'].mean().idxmin()
+
     # Berechnen der Durchschnittswerte der Radien für jeden Algorithmus
-    best_schmidt_avg_radius = schmidt_results.groupby(['u', 'epsilon'])[
-        'Radii'].mean().min()
+    best_schmidt_avg_radius = schmidt_results[(schmidt_results['u'] == best_u) & (
+        schmidt_results['epsilon'] == best_epsilon)]['Radii'].mean()
     gonzales_avg_radius = gonzales_results['Radii'].mean()
     kmeans_avg_radius = kmeans_results['Radii'].mean()
     heuristik_avg_radius = heuristik_results['Radii'].mean()
@@ -467,6 +471,7 @@ def compare_algorithms(config):
           heuristik_avg_radius:.6f}")
 
     all_comparison_results = []
+    worse_schmidt_points = []
     # Schleife über alle Kombinationen von u und epsilon
     for u_val in schmidt_results['u'].unique():
         for epsilon_val in schmidt_results['epsilon'].unique():
@@ -540,7 +545,7 @@ def compare_algorithms(config):
                 schmidt_better_count / total_count) * 100
             schmidt_worse_percentage = (
                 schmidt_worse_count / total_count) * 100
-            
+
             schmidt_vs_gonzales_better_percentage = (
                 schmidt_vs_gonzales_better / total_count) * 100
             schmidt_vs_gonzales_worse_percentage = (
@@ -570,6 +575,11 @@ def compare_algorithms(config):
                 'Schmidt vs Heuristik Schlechter (%)': schmidt_vs_heuristik_worse_percentage
             })
 
+            # Speichern der Dateien, bei denen Schmidt schlechter als alle anderen ist
+            if u_val == best_u and epsilon_val == best_epsilon:
+                worse_files = paired_results[paired_results['Schmidt_worse_than_all'] == True]['Datei'].tolist()
+                worse_schmidt_points.extend(worse_files)
+
     # Ergebnisse in ein DataFrame packen
     comparison_df = pd.DataFrame(all_comparison_results)
 
@@ -587,6 +597,13 @@ def compare_algorithms(config):
             md_file.write(f"| {int(row['u'])} | {row['epsilon']} | {row['Schmidt vs Alle Besser (%)']:.2f} | {row['Schmidt vs Alle Schlechter (%)']:.2f} | {row['Schmidt vs Gonzales Besser (%)']:.2f} | {row['Schmidt vs Gonzales Schlechter (%)']:.2f} | {
                           row['Schmidt vs KMeans++ Besser (%)']:.2f} | {row['Schmidt vs KMeans++ Schlechter (%)']:.2f} | {row['Schmidt vs Heuristik Besser (%)']:.2f} | {row['Schmidt vs Heuristik Schlechter (%)']:.2f} |\n")
 
+    # Speichern der Dateien, bei denen Schmidt schlechter als alle anderen ist
+    with open(f'Data/{config["dimensions"]}/Results/Schmidt/worse_schmidt_points.md', 'w') as md_file:
+        md_file.write(f"u: {best_u}, epsilon: {best_epsilon}\n")
+        md_file.write("Dateien:\n")
+        for datei in worse_schmidt_points:
+            md_file.write(f"{datei}\n")
+        md_file.write("\n")
 
 def main():
     # Argumente aus der Konfiguration holen
