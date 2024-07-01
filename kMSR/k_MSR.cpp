@@ -69,12 +69,13 @@ vector<vector<double>> getRadii(double rmax, int k, double epsilon) {
   // Abdeckung sicherzustellen
   int limit = ceil(logBase((k / epsilon), (1 + epsilon)));
 
-  // Erstelle das Set der Radien, deren Potenzmenge gebildet wird.
+  // Erstelle das Set der Radien, deren Permutationen gebildet werden.
   for (int i = 0; i <= limit; i++) {
     set.push_back(pow((1 + epsilon), i) * (epsilon / k) * rmax);
   }
 
-  // Erstelle Potenzmenge von 'set' mit 'rmax' als erstem Element.
+  // Erstelle alles möglichen Permutationen von 'set' mit 'rmax' als erstem
+  // Element.
   while (true) {
     vector<double> current;
 
@@ -100,14 +101,51 @@ vector<vector<double>> getRadii(double rmax, int k, double epsilon) {
   return result;
 }
 
+vector<vector<double>> getRandomRadii(double rmax, int k, double epsilon,
+                                      int numRadiiVectors) {
+  vector<double> set;
+
+  // Berechnung der Anzahl der Radien, die benötigt werden, um eine ausreichende
+  // Abdeckung sicherzustellen
+  int limit = ceil(logBase((k / epsilon), (1 + epsilon)));
+
+  // Erstelle das Set der Radien, deren Permutationen gebildet werden.
+  for (int i = 0; i <= limit; i++) {
+    set.push_back(pow((1 + epsilon), i) * (epsilon / k) * rmax);
+  }
+
+  vector<vector<double>> result(numRadiiVectors);
+
+  // Initialisiert einen Mersenne Twister-Generator mit der Seed von 'rd'.
+  mt19937 gen(1234);
+
+  // Definiert eine Gleichverteilung für Ganzzahlen zwischen 0 und set.size()-1.
+  uniform_int_distribution<> distrib(0, set.size() - 1);
+
+  // Erzeugt numVectors viele Vektoren.
+  for (int i = 0; i < numRadiiVectors; i++) {
+    vector<double> currentVector(k);
+    currentVector[0] = rmax;
+
+    // Füllt den Vektor mit zufälligen Werten, die durch den Zufallsgenerator
+    // bestimmt werden.
+    for (int j = 1; j < currentVector.size(); j++) {
+      currentVector[j] = set[distrib(gen)];
+    }
+    result[i] = currentVector;
+  }
+
+  return result;
+}
+
 // Generiert eine Liste von Vektoren, die jeweils zufällige Ganzzahlen zwischen
 // 0 und k-1 enthalten.
-vector<vector<int>> getU(int k, double epsilon, int numVectors) {
+vector<vector<int>> getU(int n, int k, int numUVectors) {
   // Berechnet die Länge jedes Vektors basierend auf den gegebenen Parametern k
   // und epsilon.
-  int length = (32 * k * (1 + epsilon)) / (pow(epsilon, 3));
+  int length = n;
 
-  vector<vector<int>> result(numVectors);
+  vector<vector<int>> result(numUVectors);
 
   // Initialisiert einen Mersenne Twister-Generator mit der Seed von 'rd'.
   mt19937 gen(1234);
@@ -116,7 +154,7 @@ vector<vector<int>> getU(int k, double epsilon, int numVectors) {
   uniform_int_distribution<> distrib(0, k - 1);
 
   // Erzeugt numVectors viele Vektoren.
-  for (int i = 0; i < numVectors; i++) {
+  for (int i = 0; i < numUVectors; i++) {
     vector<int> currentVector(length);
 
     // Füllt den Vektor mit zufälligen Werten, die durch den Zufallsgenerator
@@ -207,13 +245,14 @@ vector<Ball> selection(const vector<Point> &points, int k, const vector<int> &u,
 
 // Hauptfunktion, die die Cluster berechnet.
 vector<Cluster> clustering(const vector<Point> &points, int k, double epsilon,
-                           int numVectors) {
+                           int numUVectors, int numRadiiVectors) {
   vector<Cluster> bestCluster(k);
   double rmax = gonzalesrmax(points, k);
 
   // Berechnung der Radien und u-Werte basierend auf 'rmax', 'k' und 'epsilon'.
-  vector<vector<double>> radii = getRadii(rmax, k, epsilon);
-  vector<vector<int>> u = getU(k, epsilon, numVectors);
+  vector<vector<double>> radii =
+      getRandomRadii(rmax, k, epsilon, numRadiiVectors);
+  vector<vector<int>> u = getU(points.size(), k, numUVectors);
 
   // Initialisiere das 'bestCluster', indem alle Punkte Teil eines Clusters
   // sind.

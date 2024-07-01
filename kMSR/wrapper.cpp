@@ -50,10 +50,10 @@ extern "C" {
 
 ClusterData* schmidt_wrapper(double* point_array, int num_points,
                                 int dimension, int k, double epsilon,
-                                int numVectors, int* num_clusters) {
+                                int numUVectors, int numRadiiVectors, int* num_clusters) {
   vector<Point> points = array_to_vector(point_array, num_points, dimension);
 
-  vector<Cluster> cluster = clustering(points, k, epsilon, numVectors);
+  vector<Cluster> cluster = clustering(points, k, epsilon, numUVectors, numRadiiVectors);
 
   return cluster_to_array(cluster, num_clusters);
 }
