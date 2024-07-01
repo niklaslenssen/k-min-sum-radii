@@ -11,12 +11,12 @@ struct PointData {
 
 struct ClusterData {
   PointData* points;
-  int num_points;
+  int numPoints;
 };
 
-vector<Point> array_to_vector(double* array, int num_points, int dimension) {
+vector<Point> arrayToVector(double* array, int numPoints, int dimension) {
   vector<Point> points;
-  for (int i = 0; i < num_points; i++) {
+  for (int i = 0; i < numPoints; i++) {
     vector<double> coordinates;
     for (int j = 0; j < dimension; j++) {
       coordinates.push_back(array[i * dimension + j]);
@@ -26,72 +26,73 @@ vector<Point> array_to_vector(double* array, int num_points, int dimension) {
   return points;
 }
 
-ClusterData* cluster_to_array(vector<Cluster> clusters, int* num_clusters) {
-  *num_clusters = clusters.size();
+ClusterData* clusterToArray(vector<Cluster> clusters, int* numClusters) {
+  *numClusters = clusters.size();
 
-  ClusterData* cluster_data = new ClusterData[*num_clusters];
-  for (int i = 0; i < *num_clusters; i++) {
-    const vector<Point>& cluster_points = clusters[i].getPoints();
-    cluster_data[i].num_points = cluster_points.size();
-    cluster_data[i].points = new PointData[cluster_points.size()];
-    for (int j = 0; j < cluster_points.size(); j++) {
-      const vector<double>& coords = cluster_points[j].getCoordinates();
-      cluster_data[i].points[j].dimension = coords.size();
-      cluster_data[i].points[j].coordinates = new double[coords.size()];
+  ClusterData* clusterData = new ClusterData[*numClusters];
+  for (int i = 0; i < *numClusters; i++) {
+    const vector<Point>& clusterPoints = clusters[i].getPoints();
+    clusterData[i].numPoints = clusterPoints.size();
+    clusterData[i].points = new PointData[clusterPoints.size()];
+    for (int j = 0; j < clusterPoints.size(); j++) {
+      const vector<double>& coords = clusterPoints[j].getCoordinates();
+      clusterData[i].points[j].dimension = coords.size();
+      clusterData[i].points[j].coordinates = new double[coords.size()];
       for (int k = 0; k < coords.size(); k++) {
-        cluster_data[i].points[j].coordinates[k] = coords[k];
+        clusterData[i].points[j].coordinates[k] = coords[k];
       }
     }
   }
-  return cluster_data;
+  return clusterData;
 }
 
 extern "C" {
 
-ClusterData* schmidt_wrapper(double* point_array, int num_points,
-                                int dimension, int k, double epsilon,
-                                int numUVectors, int numRadiiVectors, int* num_clusters) {
-  vector<Point> points = array_to_vector(point_array, num_points, dimension);
+ClusterData* schmidt_wrapper(double* pointArray, int numPoints, int dimension,
+                             int k, double epsilon, int numUVectors,
+                             int numRadiiVectors, int* numClusters) {
+  vector<Point> points = arrayToVector(pointArray, numPoints, dimension);
 
-  vector<Cluster> cluster = clustering(points, k, epsilon, numUVectors, numRadiiVectors);
+  vector<Cluster> cluster =
+      clustering(points, k, epsilon, numUVectors, numRadiiVectors);
 
-  return cluster_to_array(cluster, num_clusters);
+  return clusterToArray(cluster, numClusters);
 }
 
-ClusterData* heuristic_wrapper(double* point_array, int num_points,
-                               int dimension, int k, int* num_clusters) {
-  vector<Point> points = array_to_vector(point_array, num_points, dimension);
+ClusterData* heuristic_wrapper(double* pointArray, int numPoints, int dimension,
+                               int k, int* numClusters) {
+  vector<Point> points = arrayToVector(pointArray, numPoints, dimension);
 
   vector<Cluster> cluster = heuristik(points, k);
 
-  return cluster_to_array(cluster, num_clusters);
+  return clusterToArray(cluster, numClusters);
 }
 
-ClusterData* gonzales_wrapper(double* point_array, int num_points,
-                              int dimension, int k, int* num_clusters) {
-  vector<Point> points = array_to_vector(point_array, num_points, dimension);
+ClusterData* gonzales_wrapper(double* pointArray, int numPoints, int dimension,
+                              int k, int* numClusters) {
+  vector<Point> points = arrayToVector(pointArray, numPoints, dimension);
 
   vector<Cluster> cluster = gonzales(points, k);
 
-  return cluster_to_array(cluster, num_clusters);
+  return clusterToArray(cluster, numClusters);
 }
 
-ClusterData* kmeans_wrapper(double* point_array, int num_points, int dimension,
-                            int k, int* num_clusters) {
-  vector<Point> points = array_to_vector(point_array, num_points, dimension);
+ClusterData* kmeans_wrapper(double* pointArray, int numPoints, int dimension,
+                            int k, int* numClusters) {
+  vector<Point> points = arrayToVector(pointArray, numPoints, dimension);
 
   vector<Cluster> cluster = kMeansPlusPlus(points, k);
 
-  return cluster_to_array(cluster, num_clusters);
+  return clusterToArray(cluster, numClusters);
 }
 
-void free_cluster_data(ClusterData* cluster_data, int num_clusters) {
-  for (int i = 0; i < num_clusters; i++) {
-    for (int j = 0; j < cluster_data[i].num_points; j++) {
-      delete[] cluster_data[i].points[j].coordinates;
+void free_cluster_data(ClusterData* clusterData, int numClusters) {
+  for (int i = 0; i < numClusters; i++) {
+    for (int j = 0; j < clusterData[i].numPoints; j++) {
+      delete[] clusterData[i].points[j].coordinates;
     }
-    delete[] cluster_data[i].points;
+    delete[] clusterData[i].points;
   }
-  delete[] cluster_data;
+  delete[] clusterData;
 }
 }
