@@ -111,7 +111,7 @@ void analyseSchmidt(vector<Point> &points, int k, double epsilon,
                     int numVectors, string &clusterFilePath,
                     string &ballFilePath) {
   auto start = std::chrono::steady_clock::now();
-  vector<Cluster> cluster = clustering(points, k, epsilon, numVectors);
+  vector<Cluster> cluster = clustering(points, k, epsilon, numVectors, 10);
   auto end = std::chrono::steady_clock::now();
   vector<Ball> balls = getBallsFromCluster(cluster);
   double radii = sumOfRadii(balls);
